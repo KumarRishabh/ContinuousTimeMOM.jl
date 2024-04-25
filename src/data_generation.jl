@@ -8,7 +8,7 @@ width, height = 50, 50  # dimensions of the grid
 prob_infect = 0.2       # probability of infecting a neighbor
 prob_recover = 0.1      # probability of recovery
 prob_noise = 0.05       # probability of observation noise
-num_steps = 100         # number of time steps to simulate
+num_steps = 300       # number of time steps to simulate
 
 # Initialize the grid
 state = zeros(Bool, width, height)
@@ -22,7 +22,7 @@ function update_state(state)
     new_state = copy(state)
     for i in 1:width
         for j in 1:height
-            if state[i, j]  # if the node is currently infected
+            if state[i, j] == 1 # if the node is currently infected
                 # Recovery process
                 if rand() < prob_recover
                     new_state[i, j] = false
@@ -54,17 +54,30 @@ function add_noise(state)
     end
     return noisy_state
 end
-
+# print(state)
 # Initialize the plot
-heatmap(state, color=:green, aspect_ratio=:equal, xlims=(1, width), ylims=(1, height), cbar=false)
 
+# function plot_noisy_state(noisy_state)
+    
+# heatmap(state, color=:green)
 # Run the simulation
-for step in 1:num_steps
-    state = update_state(state)
-    noisy_state = add_noise(state)
-    heatmap!(noisy_state, color=:red)
-    display(plot!)
-    sleep(0.1)  # Add a small delay between each step for visualization
+
+
+function generate_animation!(state, num_steps)
+    p = heatmap(state, color=:grays, legend = false)
+
+    anim = @animate for step in 1:num_steps
+        state = update_state(state)
+        noisy_state = add_noise(state)
+        
+        # clf(p)
+        heatmap!(p, noisy_state, color=:grays, lengend = false)
+    end
+    return anim
 end
 
+@time anim = generate_animation!(state, num_steps)
+gif(anim, "contact_process_tori.gif", fps=10)
 println("Simulation completed.")
+# gif(anim, "contact_process_tori.gif", fps=10)
+# println("Simulation completed.")

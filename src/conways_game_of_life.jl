@@ -24,10 +24,15 @@ function update_state(state)
 end
 
 # Run the simulation and plot each step
+# Run the simulation and plot each step
 anim = @animate for step in 1:100
+    global state
     state = update_state(state)
     heatmap(state, color=:grays, legend=false)
 end
+
+# Save the animation as a gif
+# gif(anim, "game_of_life.gif", fps = 10)
 
 # Save the animation as a gif
 gif(anim, "game_of_life.gif", fps = 10)
