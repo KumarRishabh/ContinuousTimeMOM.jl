@@ -1,10 +1,11 @@
 # Data Generating model as per contact process on a torus
 module ContactProcess
 
-    export calculate_all_rates, sample_time_with_rates, update_states!, update_rates!, add_noise, run_simulation, generate_animation!
+    export initialize_state_and_rates, calculate_all_rates, sample_time_with_rates, update_states!, update_rates!, add_noise, run_simulation, generate_animation!
     using Random
     using Plots
     using Distributions
+    using StatsBase
 
     # Initialize parameters
     width, height = 50, 50 # dimensions of the grid
@@ -18,11 +19,21 @@ module ContactProcess
     prob_noise = 0.05       # probability of observation noise
     num_steps = 300       # number of time steps to simulate
 
+
     # Initialize the grid
-    state = zeros(Bool, width_with_padding, height_with_padding)
-    initial_infections = 10  # start with 10 infected individuals
-    for _ in 1:initial_infections
-        state[rand(1:width), rand(1:height)] = true
+    function initialize_state_and_rates(num_infections)
+        global width_with_padding, height_with_padding
+        state = zeros(Bool, width_with_padding, height_with_padding)
+        rates = zeros(width_with_padding, height_with_padding)
+        # randomly infect a according to num_infections without replacemt and without paddings
+        infected_nodes = rand(1:width * height, num_infections, replace=false)
+        for node in infected_nodes
+            i, j = ind2sub(state, node)
+            state[i, j] = true
+        end
+        # update the rates for the infected nodes
+        rates = calculate_all_rates(state)
+        return state, rates
     end
 
     # Function to update the state of the grid
@@ -38,7 +49,7 @@ module ContactProcess
             end
         end
         # choose a grid position according to the rate 
-
+        return rates
     end
 
     function sample_time_with_rates(state, rates)
