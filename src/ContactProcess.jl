@@ -1,6 +1,5 @@
 # Data Generating model as per contact process on a torus
 module ContactProcess
-
     export initialize_state_and_rates, calculate_all_rates, sample_time_with_rates, update_states!, update_rates!, add_noise, run_simulation, generate_animation!
     using Random
     using Plots
@@ -8,14 +7,14 @@ module ContactProcess
     using StatsBase
 
     # Initialize parameters
-    width, height = 50, 50 # dimensions of the grid
+    width, height = 200, 200# dimensions of the grid
     # add paddings to the grid 
     width_with_padding = width + 2
     height_with_padding = height + 2
     # prob_infect = 0.2       # probability of infecting a neighbor
     infection_rate = 2 # a
     # prob_recover = 0.1 
-    recovery_rate = 1 # s   # probability of recovery
+    recovery_rate = 1.5 # s   # probability of recovery
     prob_noise = 0.05       # probability of observation noise
     num_steps = 300       # number of time steps to simulate
 
@@ -26,9 +25,11 @@ module ContactProcess
         state = zeros(Bool, width_with_padding, height_with_padding)
         rates = zeros(width_with_padding, height_with_padding)
         # randomly infect a according to num_infections without replacemt and without paddings
-        infected_nodes = rand(1:width * height, num_infections, replace=false)
+        infected_nodes = sample(1:width * height, num_infections, replace=false)
+        # convert the infected nodes to the padded grid
+        print("Infected nodes: ", length(infected_nodes))
         for node in infected_nodes
-            i, j = ind2sub(state, node)
+            i, j = round(Int, node / width) + 1, node % width + 2
             state[i, j] = true
         end
         # update the rates for the infected nodes
@@ -60,24 +61,45 @@ module ContactProcess
         return time
     end
 
-    function update_states!(state, rates)
-        global width_with_padding, height_with_padding
-        r = rand()
+    # function to add two integers 
+
+    # function to multiply any number of integers using SIMD instructions
+
+
+
+
+
+    function update_states!(state, rates; debug_mode::Bool = false)
+        global width_with_padding, height_with_padding; r = rand(); flag = false;
+        debug_mode == true && println("Random number: ", r)  # Turn debug mode on
         cum_rate = 0.0
+        updated_node = (0, 0)
         total_rate = sum(rates)
         for i in 2:width_with_padding-1
             for j in 2:height_with_padding-1
+                # update the state of the node if the cumulative rate is greater than the random number
                 cum_rate += rates[i, j]
                 if cum_rate >= r * total_rate
+                    debug_mode == true && println("State updated")
                     state[i, j] = !state[i, j]
+                    updated_node = (i, j)
+                    flag = true
                     break
                 end
             end
-            if cum_rate >= r * total_rate
+            # Check this piece of code
+            if flag == true
                 break
+            end 
+            if cum_rate >= r * total_rate
+                debug_mode == true && println("State updated")
+                state[i, height] = !state[i, height]
+                updated_node = (i, height)
+                flag = true
             end
         end
-        return (i, j) # state which was updated
+        debug_mode && println("Random number: ", r) # Turn debug mode off
+        return state, updated_node
     end
 
 
@@ -131,35 +153,37 @@ module ContactProcess
     # heatmap(state, color=:green)
     # Run the simulation
 
-    function run_simulation(state, num_steps)
+    function run_simulation!(state, rates, num_steps; debug_mode::Bool = false)
         # initialize states 
-
-        for step in 1:num_steps
-            rates = calculate_all_rates(state)
-            time = sample_time_with_rates(state, rates)
-            updated_node = update_states!(state, rates)
-            rates = update_rates!(state, rates, updated_node)
+        state_sequence = []
+        times = [0.0]
+        push!(state_sequence, state)
+        for _ in 1:num_steps
+            rates = calculate_all_rates(state_sequence[end])
+            time = sample_time_with_rates(state_sequence[end], rates)
+            new_state, updated_node = update_states!(copy(state_sequence[end]), copy(rates); debug_mode = debug_mode)
+            rates = update_rates!(new_state, copy(rates), updated_node)
+            push!(state_sequence, new_state)
+            push!(times, times[end] + time)
         end
-        return state
+        return state_sequence, times
     end
 
-    function generate_animation!(state, num_steps)
-        p = heatmap(state, color=:grays, legend = false)
+    function generate_animation(state_sequence, times)
 
-        anim = @animate for step in 1:num_steps
-            state = update_state(state)
-            # noisy_state = add_noise(state)
-            
-            # clf(p)
-            heatmap!(p, state, color=:grays, lengend = false)
+        # p = heatmap(state_sequence[1], color=:grays, legend = false)
+        p = heatmap(state_sequence[1], color=:grays, legend = false)
+
+        anim = @animate for step in eachindex(state_sequence)
+            println("Step: $step")
+            state = state_sequence[step]
+            # print("State:", state)
+
+            heatmap!(state, color=:grays, legend=false)
             # Put time step in the title
-            title!("Time step: $step")
+            title!("Time step: $(times[step])")
         end
-
         return anim
     end
-end 
-
-
-# gif(anim, "contact_process_tori.gif", fps=10)
-# println("Simulation completed.")
+    
+end # module
