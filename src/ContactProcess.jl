@@ -5,48 +5,58 @@ module ContactProcess
     using Plots
     using Distributions
     using StatsBase
+    using Parameters
 
     # Initialize parameters
-    width, height = 200, 200# dimensions of the grid
-    # add paddings to the grid 
-    width_with_padding = width + 2
-    height_with_padding = height + 2
-    # prob_infect = 0.2       # probability of infecting a neighbor
-    infection_rate = 2 # a
-    # prob_recover = 0.1 
-    recovery_rate = 1.5 # s   # probability of recovery
-    prob_noise = 0.05       # probability of observation noise
-    num_steps = 300       # number of time steps to simulate
+    @with_kw struct GridParameters
+        width::Int64 = 200    
+        height::Int64 = 200
+        width_with_padding::Int64 = width + 2
+        height_with_padding::Int64 = height + 2
+    end
+    
+    @with_kw struct ModelParameters
+        infection_rate::Float64 = 2.0
+        recovery_rate::Float64 = 1.5
+        prob_noise::Float64 = 0.05
+        # num_steps::Int64 = 300
+        time_limit::Float64 = 100.0
+        prob_infections::Float64 = 0.01 # Bernoulli distributions
+        num_simulations::Int64 = 1
+    end
+    
+    grid_params = GridParameters()
+    model_params = ModelParameters()
 
 
     # Initialize the grid
-    function initialize_state_and_rates(num_infections)
-        global width_with_padding, height_with_padding
-        state = zeros(Bool, width_with_padding, height_with_padding)
-        rates = zeros(width_with_padding, height_with_padding)
-        # randomly infect a according to num_infections without replacemt and without paddings
-        infected_nodes = sample(1:width * height, num_infections, replace=false)
-        # convert the infected nodes to the padded grid
-        print("Infected nodes: ", length(infected_nodes))
-        for node in infected_nodes
-            i, j = round(Int, node / width) + 1, node % width + 2
-            state[i, j] = true
+    function initialize_state_and_rates(grid_params, model_params)
+        state = zeros(Bool, grid_params.width_with_padding, grid_params.height_with_padding)
+        rates = zeros(grid_params.width_with_padding, grid_params.height_with_padding)
+
+        # Sample randomly the nodes which will be infected
+        for i in 2:grid_params.width 
+            for j in 2:grid_params.height
+                if rand() < model_params.prob_infections
+                    state[i, j] = true
+                end
+            end
         end
+
         # update the rates for the infected nodes
-        rates = calculate_all_rates(state)
+        rates = calculate_all_rates(state, grid_params, model_params)
         return state, rates
     end
 
     # Function to update the state of the grid
 
-    function calculate_all_rates(state)
+    function calculate_all_rates(state, grid_params, model_params)
         # After calculating the rates, we need to select the position of the node 
         # which will be updated
-        global width_with_padding, height_with_padding
-        rates = zeros(width_with_padding, height_with_padding)
-        for i in 2:width_with_padding-1
-            for j in 2:height_with_padding-1
-                rates[i, j] = infection_rate *(1 - state[i, j]) * (state[i, j+ 1] + state[i, j - 1] + state[i - 1, j] + state[i + 1, j]) + recovery_rate * state[i, j]
+        rates = zeros(grid_params.width_with_padding, grid_params.height_with_padding)
+        for i in 2:grid_params.width_with_padding-1
+            for j in 2:grid_params.height_with_padding-1
+                rates[i, j] = model_params.infection_rate *(1 - state[i, j]) * (state[i, j+ 1] + state[i, j - 1] + state[i - 1, j] + state[i + 1, j]) + model_params.recovery_rate * state[i, j]
             end
         end
         # choose a grid position according to the rate 
@@ -54,7 +64,6 @@ module ContactProcess
     end
 
     function sample_time_with_rates(state, rates)
-        global width_with_padding, height_with_padding
         rate = sum(rates)
         # sample from the Exponential rate
         time = rand(Exponential(1 / rate))
@@ -69,14 +78,14 @@ module ContactProcess
 
 
 
-    function update_states!(state, rates; debug_mode::Bool = false)
-        global width_with_padding, height_with_padding; r = rand(); flag = false;
+    function update_states!(state, rates, grid_params; debug_mode::Bool = false)
+        r = rand(); flag = false;
         debug_mode == true && println("Random number: ", r)  # Turn debug mode on
         cum_rate = 0.0
         updated_node = (0, 0)
         total_rate = sum(rates)
-        for i in 2:width_with_padding-1
-            for j in 2:height_with_padding-1
+        for i in 2:grid_params.width_with_padding-1
+            for j in 2:grid_params.height_with_padding-1
                 # update the state of the node if the cumulative rate is greater than the random number
                 cum_rate += rates[i, j]
                 if cum_rate >= r * total_rate
@@ -106,38 +115,45 @@ module ContactProcess
     #=
     After updating the state, we need to update the rates of the neighbors of the updated node 
     =#
-    function update_rates!(state, rates, updated_node)
-        global width_with_padding, height_with_padding
+    function update_rates!(state, rates, updated_node, grid_params, model_params)
         i, j = updated_node
         # If the updated_note is changed to infected, then the rate will be that of recovery and similary when the node is 
         # changed to uninfected, the rate will be that of infection
 
-        rates[i, j] = infection_rate *(1 - state[i, j]) * (state[i, j+ 1] + state[i, j - 1] + state[i - 1, j] + state[i + 1, j]) + recovery_rate * state[i, j]
-        if j + 1 == width_with_padding
+        rates[i, j] = model_params.infection_rate *(1 - state[i, j]) * (state[i, j+ 1] + state[i, j - 1] + state[i - 1, j] + state[i + 1, j]) + model_params.recovery_rate * state[i, j]
+        if j + 1 == grid_params.width_with_padding
             rates[i, j + 1] = 0 # Boundary condition
-            
-        elseif i + 1 == height_with_padding
+        else
+            rates[i, j + 1] = model_params.infection_rate * (1 - state[i, j + 1]) * (state[i, j + 2] + state[i, j] + state[i - 1, j + 1] + state[i + 1, j + 1]) + model_params.recovery_rate * state[i, j + 1]
+        end
+        
+        if i + 1 == grid_params.height_with_padding
             rates[i + 1, j] = 0 # Boundary condition
+        else
+            rates[i + 1, j] = model_params.infection_rate * (1 - state[i + 1, j]) * (state[i + 1, j + 1] + state[i + 1, j - 1] + state[i, j] + state[i + 2, j]) + model_params.recovery_rate * state[i + 1, j]
+        end
         
-        elseif j - 1 == 1
+        if j - 1 == 1
             rates[i, j - 1] = 0 # Boundary condition
+        else
+            rates[i, j - 1] = model_params.infection_rate * (1 - state[i, j - 1]) * (state[i, j] + state[i, j - 2] + state[i - 1, j - 1] + state[i + 1, j - 1]) + model_params.recovery_rate * state[i, j - 1]
+        end
 
-        elseif i - 1 == 1
+        if i - 1 == 1
             rates[i - 1, j] = 0 # Boundary condition
-        
-        else 
-            rates[i, j + 1] = infection_rate * (1 - state[i, j]) * (state[i, j + 1] + state[i, j - 1] + state[i - 1, j] + state[i + 1, j]) + recovery_rate * state[i, j]
-        end 
+        else
+            rates[i - 1, j] = model_params.infection_rate * (1 - state[i - 1, j]) * (state[i - 1, j + 1] + state[i - 1, j - 1] + state[i - 2, j] + state[i, j]) + model_params.recovery_rate * state[i - 1, j]
+        end
         
         return rates
     end
         
 
     # Function to add noise to observations
-    function add_noise(state)
+    function add_noise(state, grid_params)
         noisy_state = copy(state)
-        for i in 1:width
-            for j in 1:height
+        for i in 2:grid_params.width
+            for j in 2:grid_params.height
                 if rand() < prob_noise
                     noisy_state[i, j] = !noisy_state[i, j]
                 end
@@ -153,21 +169,52 @@ module ContactProcess
     # heatmap(state, color=:green)
     # Run the simulation
 
-    function run_simulation!(state, rates, num_steps; debug_mode::Bool = false)
+    function run_simulation!(state, rates, grid_params, model_params; debug_mode::Bool = false)
         # initialize states 
         state_sequence = []
         times = [0.0]
         push!(state_sequence, state)
-        for _ in 1:num_steps
-            rates = calculate_all_rates(state_sequence[end])
+        time_elapsed = 0.0
+        while time_elapsed < model_params.time_limit
+            rates = calculate_all_rates(state_sequence[end], grid_params, model_params)
             time = sample_time_with_rates(state_sequence[end], rates)
-            new_state, updated_node = update_states!(copy(state_sequence[end]), copy(rates); debug_mode = debug_mode)
-            rates = update_rates!(new_state, copy(rates), updated_node)
+            if time + times[end] > model_params.time_limit
+                break
+            end
+            new_state, updated_node = update_states!(copy(state_sequence[end]), copy(rates), grid_params; debug_mode = debug_mode)
+            rates = update_rates!(new_state, copy(rates), updated_node, grid_params, model_params)
             push!(state_sequence, new_state)
             push!(times, times[end] + time)
+            time_elapsed += time
         end
+
         return state_sequence, times
     end
+
+    # function to run multiple simulations according to the model parameters and re-using the simulations function
+    # use array of array to store the state sequences and times
+    function multiple_simulations(grid_params, model_params)
+        state_sequences = Array{Vector{Any}, 1}(undef, model_params.num_simulations)
+        times = Array{Array{Float64, 1}, 1}(undef, model_params.num_simulations)
+        for i in 1:model_params.num_simulations
+            state, rates = initialize_state_and_rates(grid_params, model_params)
+            interim_state_sequences, interim_times = run_simulation!(state, rates, grid_params, model_params)
+            # state_sequences[i], times[i] = run_simulation!(state, rates, grid_params, model_params)
+            state_sequences[i] = interim_state_sequences
+            times[i] = interim_times
+        end
+        return state_sequences, times
+    end
+    # function multiple_simulations(grid_params, model_params)
+    #     state_sequences = [] # Array{Array{Bool, 2}, model_params.num_simulations}
+    #     state_sequences = Array{Array{Bool, 2}}(undef, model_params.num_simulations)
+    #     times = Array{Float64}(undef, model_params.num_simulations)
+    #     for i in 1:model_params.num_simulations
+    #         state, rates = initialize_state_and_rates(grid_params, model_params)
+    #         state_sequences[i], times[i] = run_simulation!(state, rates, grid_params, model_params)
+    #     end
+    #     return state_sequences, times
+    # end
 
     function generate_animation(state_sequence, times)
 
