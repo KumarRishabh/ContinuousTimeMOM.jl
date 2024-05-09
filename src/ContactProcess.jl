@@ -173,7 +173,7 @@ module ContactProcess
         # initialize states 
         state_sequence = []
         times = [0.0]
-        updated_nodes = [(1, 1)]
+        updated_nodes = [(1, 1)] # don't have to count the (1, 1) node, just a placeholder
         push!(state_sequence, state)
         time_elapsed = 0.0
         while time_elapsed < model_params.time_limit
@@ -190,7 +190,7 @@ module ContactProcess
             time_elapsed += time
         end
 
-        return state_sequence, times, update_nodes
+        return state_sequence, times, updated_nodes
     end
 
     # function to run multiple simulations according to the model parameters and re-using the simulations function
@@ -198,12 +198,18 @@ module ContactProcess
     function multiple_simulations(grid_params, model_params)
         state_sequences = Array{Vector{Any}, 1}(undef, model_params.num_simulations)
         times = Array{Array{Float64, 1}, 1}(undef, model_params.num_simulations)
+        updated_nodes = Array{Tuple{Int64, Int64}, 1}(undef, model_params.num_simulations)
         for i in 1:model_params.num_simulations
             state, rates = initialize_state_and_rates(grid_params, model_params)
-            interim_state_sequences, interim_times = run_simulation!(state, rates, grid_params, model_params)
+            interim_state_sequences, interim_times, interim_updated_node = run_simulation!(state, rates, grid_params, model_params)
             # state_sequences[i], times[i] = run_simulation!(state, rates, grid_params, model_params)
             state_sequences[i] = interim_state_sequences
             times[i] = interim_times
+            print("Updated nodes: ", updated_nodes[i] )
+            updated_nodes[i] = interim_updated_node
+            println("Simulation: $i")
+
+            
         end
         return state_sequences, times
     end
