@@ -1,4 +1,5 @@
 # Data Generating model as per contact process on a torus
+
 module ContactProcess
     export initialize_state_and_rates, calculate_all_rates, sample_time_with_rates, update_states!, update_rates!, add_noise, run_simulation, generate_animation!
     using Random
@@ -6,7 +7,7 @@ module ContactProcess
     using Distributions
     using StatsBase
     using Parameters
-
+    using ProgressMeter
     # Initialize parameters
     @with_kw struct GridParameters
         width::Int64 = 200    
@@ -70,13 +71,6 @@ module ContactProcess
         return time
     end
 
-    # function to add two integers 
-
-    # function to multiply any number of integers using SIMD instructions
-
-
-
-
 
     function update_states!(state, rates, grid_params; debug_mode::Bool = false)
         r = rand(); flag = false;
@@ -101,8 +95,7 @@ module ContactProcess
                 break
             end 
             if cum_rate >= r * total_rate
-                debug_mode == true && println("State updated")
-                state[i, height] = !state[i, height]
+                debug_mode == true && println("State updated") state[i, height] = !state[i, height]
                 updated_node = (i, height)
                 flag = true
             end
@@ -198,20 +191,22 @@ module ContactProcess
     function multiple_simulations(grid_params, model_params)
         state_sequences = Array{Vector{Any}, 1}(undef, model_params.num_simulations)
         times = Array{Array{Float64, 1}, 1}(undef, model_params.num_simulations)
-        updated_nodes = Array{Tuple{Int64, Int64}, 1}(undef, model_params.num_simulations)
+        updated_nodes = Vector{Vector{Tuple{Int, Int}}}()
+        progress = Progress(model_params.num_simulations; desc = "Running simulations")
         for i in 1:model_params.num_simulations
+            # make a running loading bar
+            next!(progress)
             state, rates = initialize_state_and_rates(grid_params, model_params)
-            interim_state_sequences, interim_times, interim_updated_node = run_simulation!(state, rates, grid_params, model_params)
+            interim_state_sequences, interim_times, interim_updated_nodes = run_simulation!(state, rates, grid_params, model_params)
             # state_sequences[i], times[i] = run_simulation!(state, rates, grid_params, model_params)
             state_sequences[i] = interim_state_sequences
             times[i] = interim_times
-            print("Updated nodes: ", updated_nodes[i] )
-            updated_nodes[i] = interim_updated_node
-            println("Simulation: $i")
-
-            
+            # updated_nodes[i] = interim_updated_node
+            # println("Updated nodes: ", interim_updated_nodes)
+            push!(updated_nodes, interim_updated_nodes)
+            # println(updated_nodes)
         end
-        return state_sequences, times
+        return state_sequences, times, updated_nodes
     end
     # function multiple_simulations(grid_params, model_params)
     #     state_sequences = [] # Array{Array{Bool, 2}, model_params.num_simulations}

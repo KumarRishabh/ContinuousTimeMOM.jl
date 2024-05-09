@@ -3,4 +3,5 @@
 *.jl.mem
 *.gif
 *.png
+playground.jl
 /Manifest.toml
