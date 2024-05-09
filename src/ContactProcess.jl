@@ -173,7 +173,7 @@ module ContactProcess
         # initialize states 
         state_sequence = []
         times = [0.0]
-        updated_nodes = []
+        updated_nodes = [(1, 1)]
         push!(state_sequence, state)
         time_elapsed = 0.0
         while time_elapsed < model_params.time_limit
@@ -190,7 +190,7 @@ module ContactProcess
             time_elapsed += time
         end
 
-        return state_sequence, times
+        return state_sequence, times, update_nodes
     end
 
     # function to run multiple simulations according to the model parameters and re-using the simulations function

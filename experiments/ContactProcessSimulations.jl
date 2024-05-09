@@ -49,12 +49,13 @@ function sum_edges(matrix)
     return sum(matrix[2, :]) + sum(matrix[end - 1, :]) + sum(matrix[:, 2]) + sum(matrix[:, end - 1])
 end
 
-function likelihood(model_params, state_sequences, times, updated_node)
+function likelihood(model_params, state_sequences, times, updated_nodes)
     loglikelihoods = [0] # likelihood computed at jump times
     bar_X = sum(state_sequences[1]) 
     hat_X = sum_edges(state_sequences[1])
     time = times[1]
     for i ∈ 2:length(state_sequences)
+        updated_node = updated_nodes[i]
         if i == length(state_sequences)
             new_time = model_params.time_limit
         else
@@ -63,7 +64,7 @@ function likelihood(model_params, state_sequences, times, updated_node)
         last_loglikelihood = loglikelihoods[end]
         loglikelihoods = push!(loglikelihoods, last_loglikelihood + (0.3 - model_params.recovery_rate - 4*model_params.recovery_rate) * bar_X * (new_time - time) - (0.05 - model_params.recovery_rate) * hat_X * (new_time - time))
         # if the state is updated to 1 then add to the loglikelihood log(model_params["infection_rate"]/0.05) else add log(model_params["infection_rate"]/0.01)
-        if state_sequence[i, updated_node[1], updated[2]] == 1
+        if state_sequence[i, updated_node[1], updated_node[2]] == 1
             loglikelihoods[end] += log(model_params.infection_rate/0.05)
         else
             loglikelihoods[end] += log(model_params.infection_rate/0.01)
