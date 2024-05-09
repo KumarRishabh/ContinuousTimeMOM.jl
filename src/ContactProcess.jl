@@ -173,6 +173,7 @@ module ContactProcess
         # initialize states 
         state_sequence = []
         times = [0.0]
+        updated_nodes = []
         push!(state_sequence, state)
         time_elapsed = 0.0
         while time_elapsed < model_params.time_limit
@@ -185,6 +186,7 @@ module ContactProcess
             rates = update_rates!(new_state, copy(rates), updated_node, grid_params, model_params)
             push!(state_sequence, new_state)
             push!(times, times[end] + time)
+            push!(updated_nodes, updated_node)
             time_elapsed += time
         end
 
