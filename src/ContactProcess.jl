@@ -95,7 +95,8 @@ module ContactProcess
                 break
             end 
             if cum_rate >= r * total_rate
-                debug_mode == true && println("State updated") state[i, height] = !state[i, height]
+                debug_mode == true && println("State updated") 
+                state[i, height] = !state[i, height]
                 updated_node = (i, height)
                 flag = true
             end
