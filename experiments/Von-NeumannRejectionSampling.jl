@@ -3,26 +3,30 @@
 using PrettyTables
 using Revise
 using Plots
-include("../src/ContactProcess.jl")
-using .ContactProcess
 using Random
 using ProgressMeter
 
+include("../src/ContactProcess.jl")
+using .ContactProcess
+
+function sum_edges(matrix)
+    return sum(matrix[2, :]) + sum(matrix[end - 1, :]) + sum(matrix[:, 2]) + sum(matrix[:, end - 1])
+end
+
 Random.seed!(10)
-model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = 1, prob_infections = 0.05, num_simulations = 100) # rates are defined to be per day
+model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = 30, prob_infections = 0.05, num_simulations = 1000) # rates are defined to be per day
 grid_params = ContactProcess.GridParameters(width = 20, height = 20)
 state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_params)
+
 all_state_sequences, all_times, all_updated_nodes= ContactProcess.multiple_simulations(grid_params, model_params)
 
-model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
+model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.045, recovery_rate = 0.105, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
 model_params_2 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
 model_params_3 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.0999, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
 model_params_4 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.0999, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
 
 # write a function to compute the sum of the edges of a matrix 
-function sum_edges(matrix)
-    return sum(matrix[2, :]) + sum(matrix[end - 1, :]) + sum(matrix[:, 2]) + sum(matrix[:, end - 1])
-end
+
 
 """
     computing the likelihood of the data given the following model settings: 
@@ -52,9 +56,9 @@ function compute_loglikelihood(model_params, state_sequence, times, updated_node
         # if the state is updated to 1 then add to the loglikelihood log(model_params["infection_rate"]/0.05) else add log(model_params["infection_rate"]/0.01)
         # println(state_sequence)
         if state_sequence[i][updated_node[1], updated_node[2]] == 1
-            loglikelihoods[end] += log(model_params.infection_rate/0.05)
+            loglikelihoods[end] += log(model_params.infection_rate/0.05) # birth
         else
-            loglikelihoods[end] += log(model_params.recovery_rate/0.01)
+            loglikelihoods[end] += log(model_params.recovery_rate/0.1) # death
         end
         time = new_time
         bar_X = sum(state_sequence[i])
@@ -91,6 +95,7 @@ for i ∈ 1:100
         C = exp(loglikelihoods[end])
     end
 end
+
 println("Upper Bound: ", C)
 
 C = -Inf

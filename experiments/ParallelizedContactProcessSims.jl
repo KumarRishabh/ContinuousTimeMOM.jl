@@ -14,8 +14,8 @@ addprocs(4)  # Replace 4 with the desired number of workers
 @everywhere Random.seed!(1234)
 
 # Set b, d with the same values as in the paper
-grid_params = ContactProcess.GridParameters(width = 200, height = 200) 
-model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = 1, prob_infections = 0.01, num_simulations = 20_000) # rates are defined to be per day 
+grid_params = ContactProcess.GridParameters(width = 50, height = 50) 
+model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = 1, prob_infections = 0.05, num_simulations = 20_000) # rates are defined to be per day 
 
 # Initialize state and rates
 @everywhere state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_params)
