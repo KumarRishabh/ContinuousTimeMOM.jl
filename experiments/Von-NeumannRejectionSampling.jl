@@ -5,22 +5,23 @@ using Revise
 using Plots
 using Random
 using ProgressMeter
-
+using JLD2 # for saving and loading the data efficiently
 include("../src/ContactProcess.jl")
 using .ContactProcess
+Random.seed!(10)
 
 function sum_edges(matrix)
     return sum(matrix[2, :]) + sum(matrix[end - 1, :]) + sum(matrix[:, 2]) + sum(matrix[:, end - 1])
 end
 
-Random.seed!(10)
-model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = 30, prob_infections = 0.05, num_simulations = 1000) # rates are defined to be per day
-grid_params = ContactProcess.GridParameters(width = 20, height = 20)
+
+model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = 10, prob_infections = 0.05, num_simulations = 1000) # rates are defined to be per day
+grid_params = ContactProcess.GridParameters(width = 20, height = 20) # TODO: Change to width = 200, height = 200
 state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_params)
 
 all_state_sequences, all_times, all_updated_nodes= ContactProcess.multiple_simulations(grid_params, model_params)
 
-model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.045, recovery_rate = 0.105, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
+model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
 model_params_2 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
 model_params_3 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.0999, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
 model_params_4 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.0999, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
@@ -79,10 +80,9 @@ param_2_samples = []
 param_3_samples = []
 param_4_samples = []
 
-
 progress = Progress(100, 1, "Computing loglikelihoods")
 C = -Inf
-for i ∈ 1:100
+for i ∈ 1:1000
     # sample from the permuted indices
     next!(progress)
     state_sequence = all_state_sequences[i]
@@ -98,15 +98,13 @@ end
 
 println("Upper Bound: ", C)
 
-C = -Inf
-for i ∈ 1:100
+for i ∈ 1:1000
     # sample from the permuted indices
     next!(progress)
-    permuted_index = permuted_indices[i]
-    state_sequence = all_state_sequences[permuted_index]
-    times = all_times[permuted_index]
+    state_sequence = all_state_sequences[i]
+    times = all_times[i]
     # compute the loglikelihood for the current state sequence
-    loglikelihoods = compute_loglikelihood(model_params_2, state_sequence, times, all_updated_nodes[permuted_index])
+    loglikelihoods = compute_loglikelihood(model_params_2, state_sequence, times, all_updated_nodes[i])
     # if likelihood is greater than the threshold then reject the sample
     # compute C such that it bounds the loglikelihoods
     if exp(loglikelihoods[end]) > C
@@ -116,17 +114,13 @@ end
 println("Upper Bound: ", C)
 # simulate uniform [0, C]
 
-
-
-C = -Inf
-for i ∈ 1:100
+for i ∈ 1:1000
     # sample from the permuted indices
     next!(progress)
-    permuted_index = permuted_indices[i]
-    state_sequence = all_state_sequences[permuted_index]
-    times = all_times[permuted_index]
+    state_sequence = all_state_sequences[i]
+    times = all_times[i]
     # compute the loglikelihood for the current state sequence
-    loglikelihoods = compute_loglikelihood(model_params_3, state_sequence, times, all_updated_nodes[permuted_index])
+    loglikelihoods = compute_loglikelihood(model_params_3, state_sequence, times, all_updated_nodes[i])
     # if likelihood is greater than the threshold then reject the sample
     if exp(loglikelihoods[end]) > C
         C = exp(loglikelihoods[end])
@@ -134,15 +128,13 @@ for i ∈ 1:100
 end
 println("Upper Bound: ", C)
 
-C = - Inf
-for i ∈ 1:100
+for i ∈ 1:1000
     # sample from the permuted indices
     next!(progress)
-    permuted_index = permuted_indices[i]
-    state_sequence = all_state_sequences[permuted_index]
-    times = all_times[permuted_index]
+    state_sequence = all_state_sequences[i]
+    times = all_times[i]
     # compute the loglikelihood for the current state sequence
-    loglikelihoods = compute_loglikelihood(model_params_4, state_sequence, times, all_updated_nodes[permuted_index])
+    loglikelihoods = compute_loglikelihood(model_params_4, state_sequence, times, all_updated_nodes[i])
     # if likelihood is greater than the threshold then reject the sample
     if exp(loglikelihoods[end]) > C
         C = exp(loglikelihoods[end])
@@ -150,6 +142,69 @@ for i ∈ 1:100
 
 end
 println("Upper Bound: ", C)
+
+param_1_samples = []
+param_2_samples = []
+param_3_samples = []
+param_4_samples = []
+
+# do uniform sampling for the four models with Unif[0, C] and accept the samples if the likelihood is greater than the threshold
+for i ∈ 1:1000
+    # sample from the permuted indices
+    state_sequence = all_state_sequences[i]
+    times = all_times[i]
+    # compute the loglikelihood for the current state sequence
+    loglikelihoods = compute_loglikelihood(model_params_1, state_sequence, times, all_updated_nodes[i])
+    # simulate uniform [0, C]
+    uniform_sample = rand() * C
+    # if likelihood is greater than the threshold then reject the sample
+    if uniform_sample < exp(loglikelihoods[end])
+        push!(param_1_samples, state_sequence)
+    end
+end
+
+# Do the same for the other three models
+for i ∈ 1:1000
+    # sample from the permuted indices
+    state_sequence = all_state_sequences[i]
+    times = all_times[i]
+    # compute the loglikelihood for the current state sequence
+    loglikelihoods = compute_loglikelihood(model_params_2, state_sequence, times, all_updated_nodes[i])
+    # simulate uniform [0, C]
+    uniform_sample = rand() * C
+    # if likelihood is greater than the threshold then reject the sample
+    if uniform_sample < exp(loglikelihoods[end])
+        push!(param_2_samples, state_sequence)
+    end
+end
+
+for i ∈ 1:1000
+    # sample from the permuted indices
+    state_sequence = all_state_sequences[i]
+    times = all_times[i]
+    # compute the loglikelihood for the current state sequence
+    loglikelihoods = compute_loglikelihood(model_params_3, state_sequence, times, all_updated_nodes[i])
+    # simulate uniform [0, C]
+    uniform_sample = rand() * C
+    # if likelihood is greater than the threshold then reject the sample
+    if uniform_sample < exp(loglikelihoods[end])
+        push!(param_3_samples, state_sequence)
+    end
+end
+
+for i ∈ 1:1000
+    # sample from the permuted indices
+    state_sequence = all_state_sequences[i]
+    times = all_times[i]
+    # compute the loglikelihood for the current state sequence
+    loglikelihoods = compute_loglikelihood(model_params_4, state_sequence, times, all_updated_nodes[i])
+    # simulate uniform [0, C]
+    uniform_sample = rand() * C
+    # if likelihood is greater than the threshold then reject the sample
+    if uniform_sample < exp(loglikelihoods[end])
+        push!(param_4_samples, state_sequence)
+    end
+end
 
 
 println(length(param_1_samples))
