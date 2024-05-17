@@ -3,11 +3,14 @@
 module ContactProcess
     export initialize_state_and_rates, calculate_all_rates, sample_time_with_rates, update_states!, update_rates!, add_noise, run_simulation, generate_animation!
     using Random
+    using Revise
     using Plots
     using Distributions
     using StatsBase
     using Parameters
     using ProgressMeter
+    using JLD2
+    using FileIO
     # Initialize parameters
     @with_kw struct GridParameters
         width::Int64 = 200    
@@ -190,24 +193,27 @@ module ContactProcess
     # function to run multiple simulations according to the model parameters and re-using the simulations function
     # use array of array to store the state sequences and times
     function multiple_simulations(grid_params, model_params)
-        state_sequences = Array{Vector{Any}, 1}(undef, model_params.num_simulations)
-        times = Array{Array{Float64, 1}, 1}(undef, model_params.num_simulations)
-        updated_nodes = Vector{Vector{Tuple{Int, Int}}}()
+        # GROK: Use functional programming to do this
+        # state_sequences = Array{Vector{Any}, 1}(undef, model_params.num_simulations)
+        # times = Array{Array{Float64, 1}, 1}(undef, model_params.num_simulations)
+        # updated_nodes = Vector{Vector{Tuple{Int, Int}}}()
         progress = Progress(model_params.num_simulations; desc = "Running simulations")
+        dir_path = joinpath(@__DIR__, "..", "experiments", "data")
+        println("Path to data:", dir_path)    
+        if !isdir(dir_path)
+            mkdir(dir_path) 
+        end
         for i in 1:model_params.num_simulations
             # make a running loading bar
             next!(progress)
             state, rates = initialize_state_and_rates(grid_params, model_params)
             interim_state_sequences, interim_times, interim_updated_nodes = run_simulation!(state, rates, grid_params, model_params)
-            # state_sequences[i], times[i] = run_simulation!(state, rates, grid_params, model_params)
-            state_sequences[i] = interim_state_sequences
-            times[i] = interim_times
-            # updated_nodes[i] = interim_updated_node
-            # println("Updated nodes: ", interim_updated_nodes)
-            push!(updated_nodes, interim_updated_nodes)
-            # println(updated_nodes)
+            @save "dir_path/state_sequences_$i.jld" interim_state_sequences
+            @save "dir_path/times_$i.jld" interim_times
+            @save "dir_path/updated_nodes_$i.jld" interim_updated_nodes
+        
         end
-        return state_sequences, times, updated_nodes
+        return
     end
     # function multiple_simulations(grid_params, model_params)
     #     state_sequences = [] # Array{Array{Bool, 2}, model_params.num_simulations}
@@ -221,7 +227,7 @@ module ContactProcess
     # end
 
     function generate_animation(state_sequence, times)
-
+        @save blah
         # p = heatmap(state_sequence[1], color=:grays, legend = false)
         p = heatmap(state_sequence[1], color=:grays, legend = false)
 

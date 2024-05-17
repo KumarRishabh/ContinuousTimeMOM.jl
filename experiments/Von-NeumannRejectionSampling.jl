@@ -5,9 +5,10 @@ using Revise
 using Plots
 using Random
 using ProgressMeter
-using JLD2 # for saving and loading the data efficiently
+# using JLD2 # for saving and loading the data efficiently
 include("../src/ContactProcess.jl")
 using .ContactProcess
+using JLD2
 Random.seed!(10)
 
 function sum_edges(matrix)
@@ -16,11 +17,17 @@ end
 
 
 model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = 10, prob_infections = 0.05, num_simulations = 1000) # rates are defined to be per day
+# grid_params = ContactProcess.GridParameters(width = 20, height = 20) 
 grid_params = ContactProcess.GridParameters(width = 20, height = 20) # TODO: Change to width = 200, height = 200
 state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_params)
 
-all_state_sequences, all_times, all_updated_nodes= ContactProcess.multiple_simulations(grid_params, model_params)
+# Just run the simulation once
 
+state_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, model_params)
+# run the run_simulation 1000 times
+@load "data/state_sequences_1.jld" state_sequences
+
+ContactProcess.multiple_simulations(grid_params, model_params)
 model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
 model_params_2 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
 model_params_3 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.0999, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
@@ -74,11 +81,6 @@ end
 # model_params_1, model_params_2, model_params_3, model_params_4 
 
 # write a function to permute the simulations
-
-param_1_samples = []
-param_2_samples = []
-param_3_samples = []
-param_4_samples = []
 
 progress = Progress(100, 1, "Computing loglikelihoods")
 C = -Inf
