@@ -9,6 +9,7 @@ using ProgressMeter
 include("../src/ContactProcess.jl")
 using .ContactProcess
 using JLD2
+
 Random.seed!(10)
 
 function sum_edges(matrix)

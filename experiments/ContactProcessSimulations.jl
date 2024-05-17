@@ -29,3 +29,4 @@ anim = ContactProcess.generate_animation(state_sequence, times)
 
 @profile all_state_sequences, all_times, all_updated_nodes= ContactProcess.multiple_simulations(grid_params, model_params)
 
+# select a node at random 

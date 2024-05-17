@@ -1,8 +1,66 @@
+"""
+    module ContactProcess
+
+    This module implements a contact process on a M × M  grid. It provides functions to initialize the state and rates, calculate rates for each node, sample time with rates, update the states of the grid, update the rates of the neighbors, add noise to observations, run the simulation, and generate an animation.
+
+    ## Usage
+
+    ```julia
+    using ContactProcess
+
+    # Initialize the grid parameters and model parameters
+    grid_params = GridParameters()
+    model_params = ModelParameters()
+
+    # Initialize the state and rates
+    state, rates = initialize_state_and_rates(grid_params, model_params)
+
+    # Calculate rates for each node
+    rates = calculate_all_rates(state, grid_params, model_params)
+
+    # Sample time with rates
+    time = sample_time_with_rates(state, rates)
+
+    # Update the states of the grid
+    state, updated_node = update_states!(state, rates, grid_params)
+
+    # Update the rates of the neighbors
+    rates = update_rates!(state, rates, updated_node, grid_params, model_params)
+
+    # Add noise to observations
+    noisy_state = add_noise(state, grid_params)
+
+    # Run the simulation
+    state_sequence, times, updated_nodes = run_simulation!(state, rates, grid_params, model_params)
+
+    # Generate an animation
+    generate_animation!(state_sequence, grid_params)
+    ```
+
+    ## Types
+
+    - `GridParameters`: A structure that holds the parameters related to the grid.
+    - `ModelParameters`: A structure that holds the parameters related to the model.
+
+    ## Functions
+
+    - `initialize_state_and_rates(grid_params, model_params)`: Initializes the state and rates of the grid.
+    - `calculate_all_rates(state, grid_params, model_params)`: Calculates the rates for each node in the grid.
+    - `sample_time_with_rates(state, rates)`: Samples a time based on the rates.
+    - `update_states!(state, rates, grid_params)`: Updates the states of the grid.
+    - `update_rates!(state, rates, updated_node, grid_params, model_params)`: Updates the rates of the neighbors.
+    - `add_noise(state, grid_params)`: Adds noise to the observations.
+    - `run_simulation!(state, rates, grid_params, model_params)`: Runs the simulation.
+    - `generate_animation!(state_sequence, grid_params)`: Generates an animation based on the state sequence.
+
+    """
+
 # Data Generating model as per contact process on a torus
 
 module ContactProcess
     export initialize_state_and_rates, calculate_all_rates, sample_time_with_rates, update_states!, update_rates!, add_noise, run_simulation, generate_animation!
     using Random
+    using DataFrames
     using Revise
     using Plots
     using Distributions
@@ -11,6 +69,7 @@ module ContactProcess
     using ProgressMeter
     using JLD2
     using FileIO
+    import Base: copy
     # Initialize parameters
     @with_kw struct GridParameters
         width::Int64 = 200    
@@ -192,6 +251,19 @@ module ContactProcess
 
     # function to run multiple simulations according to the model parameters and re-using the simulations function
     # use array of array to store the state sequences and times
+
+    # function to convert the updated nodes to state sequence
+    function updated_nodes_to_state_sequence(updated_nodes, initial_state)
+        state_sequence = [copy(initial_state)]
+        state = copy(initial_state)
+        for x in eachindex(updated_nodes)
+            i, j = updated_nodes[x]
+            state[updated_nodes[i][j], updated_nodes[i][j]] = !state[updated_nodes[i][j], updated_nodes[i][j]]
+            push!(state_sequence, state)
+        end
+        return state_sequence
+    end
+
     function multiple_simulations(grid_params, model_params)
         # GROK: Use functional programming to do this
         # state_sequences = Array{Vector{Any}, 1}(undef, model_params.num_simulations)
@@ -208,9 +280,15 @@ module ContactProcess
             next!(progress)
             state, rates = initialize_state_and_rates(grid_params, model_params)
             interim_state_sequences, interim_times, interim_updated_nodes = run_simulation!(state, rates, grid_params, model_params)
-            @save "dir_path/state_sequences_$i.jld" interim_state_sequences
-            @save "dir_path/times_$i.jld" interim_times
-            @save "dir_path/updated_nodes_$i.jld" interim_updated_nodes
+            # @save "dir_path/state_sequences_$i.jld" interim_state_sequences 
+            # state sequences can be encoded using updated_nodes
+            state_sequences_df = DataFrame(state_sequences = interim_state_sequences)
+            times_df = DataFrame(times = interim_times)
+            updated_nodes_df = DataFrame(updated_nodes = interim_updated_nodes)
+
+            CSV.write("$dir_path/state_sequences_$i.csv", state_sequences_df)
+            CSV.write("$dir_path/times_$i.csv", times_df)
+            CSV.write("$dir_path/updated_nodes_$i.csv", updated_nodes_df)
         
         end
         return
