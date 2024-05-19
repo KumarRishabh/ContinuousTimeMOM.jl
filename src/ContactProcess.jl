@@ -61,6 +61,7 @@ module ContactProcess
     export initialize_state_and_rates, calculate_all_rates, sample_time_with_rates, update_states!, update_rates!, add_noise, run_simulation, generate_animation!
     using Random
     using DataFrames
+    using CSV
     using Revise
     using Plots
     using Distributions
@@ -286,9 +287,9 @@ module ContactProcess
             times_df = DataFrame(times = interim_times)
             updated_nodes_df = DataFrame(updated_nodes = interim_updated_nodes)
 
-            CSV.write("$dir_path/state_sequences_$i.csv", state_sequences_df)
-            CSV.write("$dir_path/times_$i.csv", times_df)
-            CSV.write("$dir_path/updated_nodes_$i.csv", updated_nodes_df)
+            FileIO.save("$dir_path/state_sequences_$i.jld2", "state_sequences", state_sequences_df)
+            FileIO.save("$dir_path/times_$i.jld2", "times", times_df)
+            FileIO.save("$dir_path/updated_nodes_$i.jld2", "updated_nodes", updated_nodes_df)
         
         end
         return
