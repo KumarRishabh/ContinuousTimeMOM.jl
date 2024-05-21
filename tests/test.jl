@@ -21,7 +21,7 @@ num_steps = 200
 # pretty_table print the state with a string saying that it is the initial state
 print("Initial State: ")
 pretty_table(state)
-state_sequence, times = ContactProcess.run_simulation!(state, rates, num_steps, ; debug_mode = true)
+state_sequence, times = ContactProcess.run_simulation!(state, rates, num_steps,  ; debug_mode = true)
 
 
 # plot the state_sequence using the heatmap in a loop to show the spread of the infection

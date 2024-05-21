@@ -91,7 +91,8 @@ for i ∈ eachindex(observation_time_stamps)
             t_curr = t_next
             t_next = model_params.time_limit
         end
-        
+
+        # TODO: Implement the branching process
 
 
         # simulate the contact process with the state and rates
