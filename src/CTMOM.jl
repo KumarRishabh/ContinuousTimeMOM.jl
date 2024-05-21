@@ -14,7 +14,12 @@ module CTMOM
 
     # Define any domain-specific functions and constants here
     # ...
+    struct Particle
+        state::Int
+        weight::Float64
+    end       
 
+    function test
     # Function to evolve particle behavior
     function evolve_particle(x_i, t_n_minus_1, t_n)
         # Implement the specific evolution of the particle here
@@ -43,8 +48,7 @@ module CTMOM
     # Define the particle filtering process as a function
     function particle_filter(Y, X₀, A₀, t, N, r)
         # Initialize particles and weights
-        X = [X₀ for _ in 1:N]
-        A = [A₀ for _ in 1:N]
+        particles = [Particle(X₀, A₀) for _ in 1:N]
 
         for n in 2:length(t)
             # Evolve and weight particles

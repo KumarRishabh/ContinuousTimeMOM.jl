@@ -1,76 +1,12 @@
-"""
-    module ContactProcess
-
-    This module implements a contact process on a M × M  grid. It provides functions to initialize the state and rates, calculate rates for each node, sample time with rates, update the states of the grid, update the rates of the neighbors, add noise to observations, run the simulation, and generate an animation.
-
-    ## Usage
-
-    ```julia
-    using ContactProcess
-
-    # Initialize the grid parameters and model parameters
-    grid_params = GridParameters()
-    model_params = ModelParameters()
-
-    # Initialize the state and rates
-    state, rates = initialize_state_and_rates(grid_params, model_params)
-
-    # Calculate rates for each node
-    rates = calculate_all_rates(state, grid_params, model_params)
-
-    # Sample time with rates
-    time = sample_time_with_rates(state, rates)
-
-    # Update the states of the grid
-    state, updated_node = update_states!(state, rates, grid_params)
-
-    # Update the rates of the neighbors
-    rates = update_rates!(state, rates, updated_node, grid_params, model_params)
-
-    # Add noise to observations
-    noisy_state = add_noise(state, grid_params)
-
-    # Run the simulation
-    state_sequence, times, updated_nodes = run_simulation!(state, rates, grid_params, model_params)
-
-    # Generate an animation
-    generate_animation!(state_sequence, grid_params)
-    ```
-
-    ## Types
-
-    - `GridParameters`: A structure that holds the parameters related to the grid.
-    - `ModelParameters`: A structure that holds the parameters related to the model.
-
-    ## Functions
-
-    - `initialize_state_and_rates(grid_params, model_params)`: Initializes the state and rates of the grid.
-    - `calculate_all_rates(state, grid_params, model_params)`: Calculates the rates for each node in the grid.
-    - `sample_time_with_rates(state, rates)`: Samples a time based on the rates.
-    - `update_states!(state, rates, grid_params)`: Updates the states of the grid.
-    - `update_rates!(state, rates, updated_node, grid_params, model_params)`: Updates the rates of the neighbors.
-    - `add_noise(state, grid_params)`: Adds noise to the observations.
-    - `run_simulation!(state, rates, grid_params, model_params)`: Runs the simulation.
-    - `generate_animation!(state_sequence, grid_params)`: Generates an animation based on the state sequence.
-
-    """
-
 # Data Generating model as per contact process on a torus
-
 module ContactProcess
     export initialize_state_and_rates, calculate_all_rates, sample_time_with_rates, update_states!, update_rates!, add_noise, run_simulation, generate_animation!
     using Random
-    using DataFrames
-    using CSV
-    using Revise
     using Plots
     using Distributions
     using StatsBase
     using Parameters
-    using ProgressMeter
-    using JLD2
-    using FileIO
-    import Base: copy
+
     # Initialize parameters
     @with_kw struct GridParameters
         width::Int64 = 200    
@@ -94,23 +30,51 @@ module ContactProcess
 
 
     # Initialize the grid
-    function initialize_state_and_rates(grid_params, model_params)
+    #
+    """
+    initialize_state_and_rates(grid_params, model_params; mode = "fixed_probability")
+
+    Initialize the state and rates for the contact process simulation.
+
+    # Arguments
+    - `grid_params`: The parameters of the grid.
+    - `model_params`: The parameters of the contact process model.
+    - `mode`: The mode for initializing the state. Default is "complete_chaos" or "fixed_probability".
+
+    # Returns
+    - `state`: The initial state of the grid.
+    - `rates`: The initial rates for each node in the grid.
+    """
+    function initialize_state_and_rates(grid_params, model_params; mode = "fixed_probability")
         state = zeros(Bool, grid_params.width_with_padding, grid_params.height_with_padding)
         rates = zeros(grid_params.width_with_padding, grid_params.height_with_padding)
 
-        # Sample randomly the nodes which will be infected
-        for i in 2:grid_params.width 
-            for j in 2:grid_params.height
-                if rand() < model_params.prob_infections
-                    state[i, j] = true
+        if mode == "complete_chaos"
+            # Sample randomly the nodes which will be infected (mode = "complete_chaos")
+            for i in 2:grid_params.width_with_padding
+                for j in 2:grid_params.height_with_padding
+                    if rand() < 0.5
+                        state[i, j] = true
+                    end
                 end
             end
         end
-
+        # Sample randomly the nodes which will be infected (mode = "fixed_probability")
+        if mode == "fixed_probability"
+            for i in 2:grid_params.width 
+                for j in 2:grid_params.height
+                    if rand() < model_params.prob_infections
+                        state[i, j] = true
+                    end
+                end
+            end
+        end
         # update the rates for the infected nodes
         rates = calculate_all_rates(state, grid_params, model_params)
         return state, rates
     end
+
+
 
     # Function to update the state of the grid
 
@@ -133,6 +97,13 @@ module ContactProcess
         time = rand(Exponential(1 / rate))
         return time
     end
+
+    # function to add two integers 
+
+    # function to multiply any number of integers using SIMD instructions
+
+
+
 
 
     function update_states!(state, rates, grid_params; debug_mode::Bool = false)
@@ -158,7 +129,7 @@ module ContactProcess
                 break
             end 
             if cum_rate >= r * total_rate
-                debug_mode == true && println("State updated") 
+                debug_mode == true && println("State updated")
                 state[i, height] = !state[i, height]
                 updated_node = (i, height)
                 flag = true
@@ -252,47 +223,23 @@ module ContactProcess
 
     # function to run multiple simulations according to the model parameters and re-using the simulations function
     # use array of array to store the state sequences and times
-
-    # function to convert the updated nodes to state sequence
-    function updated_nodes_to_state_sequence(updated_nodes, initial_state)
-        state_sequence = [copy(initial_state)]
-        state = copy(initial_state)
-        for x in eachindex(updated_nodes)
-            i, j = updated_nodes[x]
-            state[updated_nodes[i][j], updated_nodes[i][j]] = !state[updated_nodes[i][j], updated_nodes[i][j]]
-            push!(state_sequence, state)
-        end
-        return state_sequence
-    end
-
     function multiple_simulations(grid_params, model_params)
-        # GROK: Use functional programming to do this
-        # state_sequences = Array{Vector{Any}, 1}(undef, model_params.num_simulations)
-        # times = Array{Array{Float64, 1}, 1}(undef, model_params.num_simulations)
-        # updated_nodes = Vector{Vector{Tuple{Int, Int}}}()
-        progress = Progress(model_params.num_simulations; desc = "Running simulations")
-        dir_path = joinpath(@__DIR__, "..", "experiments", "data")
-        println("Path to data:", dir_path)    
-        if !isdir(dir_path)
-            mkdir(dir_path) 
-        end
+        state_sequences = Array{Vector{Any}, 1}(undef, model_params.num_simulations)
+        times = Array{Array{Float64, 1}, 1}(undef, model_params.num_simulations)
+        updated_nodes = Array{Array{Tuple{Int64, Int64}, 1}, 1}(undef, model_params.num_simulations)
         for i in 1:model_params.num_simulations
-            # make a running loading bar
-            next!(progress)
             state, rates = initialize_state_and_rates(grid_params, model_params)
-            interim_state_sequences, interim_times, interim_updated_nodes = run_simulation!(state, rates, grid_params, model_params)
-            # @save "dir_path/state_sequences_$i.jld" interim_state_sequences 
-            # state sequences can be encoded using updated_nodes
-            state_sequences_df = DataFrame(state_sequences = interim_state_sequences)
-            times_df = DataFrame(times = interim_times)
-            updated_nodes_df = DataFrame(updated_nodes = interim_updated_nodes)
+            interim_state_sequences, interim_times, interim_updated_node = run_simulation!(state, rates, grid_params, model_params)
+            # state_sequences[i], times[i] = run_simulation!(state, rates, grid_params, model_params)
+            state_sequences[i] = interim_state_sequences
+            times[i] = interim_times
+            print("Updated nodes: ", updated_nodes[i] )
+            updated_nodes[i] = interim_updated_node
+            println("Simulation: $i")
 
-            FileIO.save("$dir_path/state_sequences_$i.jld2", "state_sequences", state_sequences_df)
-            FileIO.save("$dir_path/times_$i.jld2", "times", times_df)
-            FileIO.save("$dir_path/updated_nodes_$i.jld2", "updated_nodes", updated_nodes_df)
-        
+            
         end
-        return
+        return state_sequences, times
     end
     # function multiple_simulations(grid_params, model_params)
     #     state_sequences = [] # Array{Array{Bool, 2}, model_params.num_simulations}
@@ -306,7 +253,7 @@ module ContactProcess
     # end
 
     function generate_animation(state_sequence, times)
-        @save blah
+
         # p = heatmap(state_sequence[1], color=:grays, legend = false)
         p = heatmap(state_sequence[1], color=:grays, legend = false)
 
