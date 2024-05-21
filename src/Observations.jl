@@ -61,6 +61,14 @@ function get_observations(state, time_limit; infection_error_rate = 0.80, recove
     end
     return observations, times
 end
+
+function likelihood(hidden_state, observed_state)
+    if hidden_state == 1
+        return hidden_state[observed_state[2][1], observed_state[2][2]] ? 0.80 : 0.20
+    else
+        return hidden_state[observed_state[2][1], observed_state[2][2]] ? 0.05 : 0.95
+    end
+end
 # Let's initialize states and rates and observe the state
 
 grid_params = ContactProcess.GridParameters(width = 20, height = 20)
@@ -81,9 +89,8 @@ V = 0.2*rand() - 0.1
 
 
 particles = initialize_particles(num_particles[1])
-
 for i ∈ eachindex(observation_time_stamps)
-    for j ∈ num_particles[i]
+    for j ∈ num_particles[1]
         if i != length(observation_time_stamps)
             t_curr = t_next
             t_next = observation_time_stamps[i]
@@ -93,7 +100,14 @@ for i ∈ eachindex(observation_time_stamps)
         end
 
         # TODO: Implement the branching process
-
+        new_model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = t_next, prob_infections = 0.05, num_simulations = 1000) # rates are defined to be per day
+        state = particles[j][end].state
+        rates = ContactProcess.calculate_all_rates(state, grid_params, new_model_params)
+        X_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, new_model_params)
+        # update the particle weight
+        for k in eachindex(particles[j])
+            particles[j][k].weight = particles[j][k].weight * ContactProcess.compute_likelihood(X_sequence, observations[i][1], updated_nodes, observations[i][2])
+        end
 
         # simulate the contact process with the state and rates
         # between the t_curr and t_next
