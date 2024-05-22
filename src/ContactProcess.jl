@@ -51,8 +51,8 @@ module ContactProcess
 
         if mode == "complete_chaos"
             # Sample randomly the nodes which will be infected (mode = "complete_chaos")
-            for i in 2:grid_params.width_with_padding
-                for j in 2:grid_params.height_with_padding
+            for i in 2:grid_params.width_with_padding - 1
+                for j in 2:grid_params.height_with_padding - 1
                     if rand() < 0.5
                         state[i, j] = true
                     end
@@ -61,8 +61,8 @@ module ContactProcess
         end
         # Sample randomly the nodes which will be infected (mode = "fixed_probability")
         if mode == "fixed_probability"
-            for i in 2:grid_params.width 
-                for j in 2:grid_params.height
+            for i in 2:grid_params.width + 1
+                for j in 2:grid_params.height + 1
                     if rand() < model_params.prob_infections
                         state[i, j] = true
                     end

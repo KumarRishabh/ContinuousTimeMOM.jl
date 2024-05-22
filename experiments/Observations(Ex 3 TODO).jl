@@ -4,7 +4,7 @@ using Plots
 using Random
 using ProgressMeter
 # using JLD2 # for saving and loading the data efficiently
-include("ContactProcess.jl")
+include("../src/ContactProcess.jl")
 using .ContactProcess
 using JLD2
 using Distributions
@@ -17,15 +17,22 @@ using Parameters
     state::Array{Bool, 2} = zeros(Bool, 20, 20) # 20 x 20 grid with all zeros
     weight::Float64 = 1.0
 end
+state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode = "complete_chaos")
+p₁ = Particle(state = state, weight = 1.0)
+particles = Dict{Matrix{Bool}, Vector{Particle}}()
+initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode = "complete_chaos")
+for i ∈ 1:100
+    particles[i] = [Particle(state = initial_state, weight = 1.0)]
+end
 # Select a node in the M \times M grid at random 
 # with rate = 100 and observe the state of the node with some error 
 # For example, if X[i, j] = 1 (infected) then the observtion is correct with probability 0.80
 # and if X[i, j] = 0 (not infected) then the observation is correct with probability 0.95
-function initialize_particles(num_particles, grid_params, model_params) :: Dict{Matrix{Bool}, Vector{Particle}}
-    particles = Dict{Int, Vector{Particle}}()
+function initialize_particles(num_particles, grid_params, model_params)::Dict{Array{Bool,2},Vector{Particle}}
+    particles = Dict{Array{Bool,2},Vector{Particle}}()
     initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params)
     for i ∈ 1:num_particles
-        particles[i] = [Particle(initial_state, 1.0)]
+        particles[i] = [Particle(state = initial_state, 1.0)]
     end
     return particles
 end
@@ -88,7 +95,7 @@ V = 0.2*rand() - 0.1
 # particles = {particle_1 => [instance_1, instance_2, instance_3], particle_2 => [instance_1, instance_2, instance_3, instance_4]} for 100 particles
 
 
-particles = initialize_particles(num_particles[1])
+particles = initialize_particles(num_particles[1], grid_params, model_params)
 for i ∈ eachindex(observation_time_stamps)
     for j ∈ num_particles[1]
         if i != length(observation_time_stamps)
