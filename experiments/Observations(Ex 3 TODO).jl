@@ -17,9 +17,12 @@ using Parameters
     state::Array{Bool, 2} = zeros(Bool, 20, 20) # 20 x 20 grid with all zeros
     weight::Float64 = 1.0
 end
+
+grid_params = ContactProcess.GridParameters(width = 20, height = 20)
+model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = 10, prob_infections = 0.05, num_simulations = 1000) # rates are defined to be per day
 state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode = "complete_chaos")
 p₁ = Particle(state = state, weight = 1.0)
-particles = Dict{Matrix{Bool}, Vector{Particle}}()
+particles = Dict{Int, Vector{Particle}}()
 initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode = "complete_chaos")
 for i ∈ 1:100
     particles[i] = [Particle(state = initial_state, weight = 1.0)]
@@ -28,11 +31,11 @@ end
 # with rate = 100 and observe the state of the node with some error 
 # For example, if X[i, j] = 1 (infected) then the observtion is correct with probability 0.80
 # and if X[i, j] = 0 (not infected) then the observation is correct with probability 0.95
-function initialize_particles(num_particles, grid_params, model_params)::Dict{Array{Bool,2},Vector{Particle}}
-    particles = Dict{Array{Bool,2},Vector{Particle}}()
+function initialize_particles(num_particles, grid_params, model_params)::Dict{Int,Vector{Particle}}
+    particles = Dict{Int,Vector{Particle}}()
     initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params)
     for i ∈ 1:num_particles
-        particles[i] = [Particle(state = initial_state, 1.0)]
+        particles[i] = [Particle(state = initial_state, weight = 1.0)]
     end
     return particles
 end
@@ -113,9 +116,15 @@ for i ∈ eachindex(observation_time_stamps)
         X_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, new_model_params)
         # update the particle weight
         for k in eachindex(particles[j])
-            particles[j][k].weight = particles[j][k].weight * ContactProcess.compute_likelihood(X_sequence, observations[i][1], updated_nodes, observations[i][2])
+            particles[j][k].weight = particles[j][k].weight * likelihood(X_sequence[end], observations[i]) * 2
         end
 
+        # resample the particles by branching
+
+        # calculate the cumulative sum of the weights
+        cumulative_sum = sum([particle.weight for particle in particles[j]])
+        # calculate the resampling threshold
+        
         # simulate the contact process with the state and rates
         # between the t_curr and t_next
         

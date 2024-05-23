@@ -233,7 +233,7 @@ module ContactProcess
             # state_sequences[i], times[i] = run_simulation!(state, rates, grid_params, model_params)
             state_sequences[i] = interim_state_sequences
             times[i] = interim_times
-            print("Updated nodes: ", updated_nodes[i] )
+            print("Updated nodes: ", updated_nodes[i])
             updated_nodes[i] = interim_updated_node
             println("Simulation: $i")
 

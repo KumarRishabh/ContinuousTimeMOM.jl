@@ -26,7 +26,7 @@ state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_para
 
 state_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, model_params)
 # run the run_simulation 1000 times
-@load "data/state_sequences_1.jld" state_sequences
+# @load "data/state_sequences_1.jld" state_sequences
 
 ContactProcess.multiple_simulations(grid_params, model_params)
 model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
