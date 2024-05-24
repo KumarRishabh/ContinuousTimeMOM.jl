@@ -62,13 +62,29 @@ end
 
 
 Random.seed!(10)
-model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = 500, prob_infections = 0.05, num_simulations = 100_000) # rates are defined to be per day
+model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = 500, prob_infections = 0.05, num_simulations = 1000) # rates are defined to be per day
 grid_params = ContactProcess.GridParameters(width = 200, height = 200)
 
 state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_params)
 all_state_sequences, all_times, all_updated_nodes = ContactProcess.multiple_simulations(grid_params, model_params)
 
-model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.1001, time_limit = 500, prob_infections = 0.01, num_simulations = 100_000) # rates are defined to be per day
-model_params_2 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.1001, time_limit = 500, prob_infections = 0.01, num_simulations = 100_000) # rates are defined to be per day
-model_params_3 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.0999, time_limit = 500, prob_infections = 0.01, num_simulations = 100_000) # rates are defined to be per day
-model_params_4 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.0999, time_limit = 500, prob_infections = 0.01, num_simulations = 100_000) # rates are defined to be per day
+model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.1001, time_limit = 500, prob_infections = 0.01, num_simulations = 1000) # rates are defined to be per day
+model_params_2 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.1001, time_limit = 500, prob_infections = 0.01, num_simulations = 1000) # rates are defined to be per day
+model_params_3 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.0999, time_limit = 500, prob_infections = 0.01, num_simulations = 1000) # rates are defined to be per day
+model_params_4 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.0999, time_limit = 500, prob_infections = 0.01, num_simulations = 1000) # rates are defined to be per day
+
+# compute weights for each model parameters
+loglikelihoods_1 = compute_loglikelihood(model_params_1, all_state_sequences[1], all_times[1], all_updated_nodes[1])
+loglikelihoods_2 = compute_loglikelihood(model_params_2, all_state_sequences[1], all_times[1], all_updated_nodes[1])
+loglikelihoods_3 = compute_loglikelihood(model_params_3, all_state_sequences[1], all_times[1], all_updated_nodes[1])
+loglikelihoods_4 = compute_loglikelihood(model_params_4, all_state_sequences[1], all_times[1], all_updated_nodes[1])
+
+function compute_probabilities(loglikelihoods, model_params, grid_params)
+    estimate = 0
+    for i ∈ 1:model_params.num_simulations
+        # if check_edges > 10 add exp(loglikelihood[i]) to the estimate else add 0
+        if sum_edges(all_state_sequences[1][i]) ≤ 10
+            estimate += exp(loglikelihoods[i])
+        end
+    return estimate/model_params.num_simulations
+end
