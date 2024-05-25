@@ -29,10 +29,10 @@ state_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rat
 # @load "data/state_sequences_1.jld" state_sequences
 
 all_state_sequences, all_times, all_updated_nodes = ContactProcess.multiple_simulations(grid_params, model_params)
-model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
-model_params_2 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
-model_params_3 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.0999, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
-model_params_4 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.0999, time_limit = 1, prob_infections = 0.01, num_simulations = 100) # rates are defined to be per day
+model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = model_params.num_simulations) # rates are defined to be per day
+model_params_2 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = model_params.num_simulations) # rates are defined to be per day
+model_params_3 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.0999, time_limit = 1, prob_infections = 0.01, num_simulations = model_params.num_simulations) # rates are defined to be per day
+model_params_4 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.0999, time_limit = 1, prob_infections = 0.01, num_simulations = model_params.num_simulations) # rates are defined to be per day
 
 # write a function to compute the sum of the edges of a matrix 
 
@@ -64,9 +64,9 @@ function compute_loglikelihood(model_params, state_sequence, times, updated_node
         loglikelihoods = push!(loglikelihoods, last_loglikelihood + (0.3 - model_params.recovery_rate - 4*model_params.infection_rate) * bar_X * δt - (0.05 - model_params.infection_rate) * hat_X * δt)
         # if the state is updated to 1 then add to the loglikelihood log(model_params["infection_rate"]/0.05) else add log(model_params["infection_rate"]/0.01)
         # println(state_sequence)
-        if state_sequence[i][updated_node[1], updated_node[2]] == 1
+        if state_sequence[i][updated_node[1], updated_node[2]] == 1 && i != length(state_sequence)
             loglikelihoods[end] += log(model_params.infection_rate/0.05) # birth
-        else
+        elseif state_sequence[i][updated_node[1], updated_node[2]] == 0 && i != length(state_sequence)
             loglikelihoods[end] += log(model_params.recovery_rate/0.1) # death
         end
         time = new_time
@@ -83,7 +83,7 @@ end
 
 # write a function to permute the simulations
 
-progress = Progress(100, 1, "Computing loglikelihoods")
+progress = Progress(4000, 1, "Computing loglikelihoods")
 C = -Inf
 for i ∈ 1:1000
     # sample from the permuted indices
