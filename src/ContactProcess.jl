@@ -238,7 +238,7 @@ module ContactProcess
 
             
         end
-        return state_sequences, times
+        return state_sequences, times, updated_nodes
     end
     # function multiple_simulations(grid_params, model_params)
     #     state_sequences = [] # Array{Array{Bool, 2}, model_params.num_simulations}

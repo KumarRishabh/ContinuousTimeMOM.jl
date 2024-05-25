@@ -160,9 +160,10 @@ for i ∈ eachindex(observation_time_stamps)
             if new_particles[j][k].weight + V[actual_num_particles] ∉ (average_weights / r, average_weights * r) # To branch
                 # add new particles to the end of the new_particle[j] list
                 # split the likelihood to get the integer and the decimal part
-                num_offspring = Int(div(new_particles[j][k].weight, average_weights))
+                println("Particle weight: ", size(new_particles[j][k].weight/average_weights)
+                num_offspring = Int(new_particles[j][k].weight/average_weights)
                 # with bernoulli distribution with probability of success = divrem(new_particles[j][k].weight, average_weights)[2] add to the offspring
-                num_offspring += rand(Bernoulli(div(new_particles[j][k].weight, average_weights) - num_offspring))
+                num_offspring += rand(Bernoulli((new_particles[j][k].weight/ average_weights) - num_offspring))
                 # add these offsprings to the end of the list 
                 new_particles[j][k].weight = average_weights
                 println("Number of offspring: ", num_offspring)
