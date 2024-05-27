@@ -1,13 +1,20 @@
-# Data Generating model as per contact process on a torus
+# Data Generating model as per contact process on a M \times M grid
+# JULIA_NUM_THREADS=4 julia --project=experiments/ -t 4 experiments/MCSimulation%28Ex%202%29.jl
+Threads.nthreads()
 module ContactProcess
     export initialize_state_and_rates, calculate_all_rates, sample_time_with_rates, update_states!, update_rates!, add_noise, run_simulation, generate_animation!
     using Random
+    using Revise
     using Plots
     using Distributions
     using StatsBase
     using Parameters
-
+    using ProgressMeter
+    using JLD2
+    using Base.Threads
+    using CUDA
     # Initialize parameters
+    dir_path = joinpath(@__DIR__, "../experiments/data") # directory path to save the data generated from the simulations
     @with_kw struct GridParameters
         width::Int64 = 200    
         height::Int64 = 200
@@ -239,6 +246,46 @@ module ContactProcess
             
         end
         return state_sequences, times, updated_nodes
+    end
+
+    function save_multiple_simulations(grid_params, model_params; dir_path = dir_path)
+        progress = Progress(model_params.num_simulations, 1, "Running simulations...")
+        if has_cuda_gpu()
+            @threads for i in 1:model_params.num_simulations
+                state, rates = initialize_state_and_rates(grid_params, model_params)
+                state_sequences, times, updated_nodes = run_simulation!(state, rates, grid_params, model_params)
+                # save("$dir_path/state_sequences_$i.jld", "state_sequences", state_sequences)
+                save("$dir_path/initial_state_$i.jld", "initial_state", state)
+                save("$dir_path/times_$i.jld", "times", times)
+                save("$dir_path/updated_nodes_$i.jld", "updated_nodes", updated_nodes)
+            end
+        else
+            for i in 1:model_params.num_simulations
+                state, rates = initialize_state_and_rates(grid_params, model_params)
+                state_sequences, times, updated_nodes = run_simulation!(state, rates, grid_params, model_params)
+                # save("$dir_path/state_sequences_$i.jld", "state_sequences", state_sequences)
+                save("$dir_path/initial_state_$i.jld", "initial_state", state)
+                save("$dir_path/times_$i.jld", "times", times)
+                save("$dir_path/updated_nodes_$i.jld", "updated_nodes", updated_nodes)
+                next!(progress)
+            end
+        end
+    end
+
+    function make_state_sequence(initial_state, updated_nodes, grid_params, model_params) # will make things easier while loading the saved files
+        state_sequence = [initial_state]
+        for i ∈ 2:length(updated_nodes)
+            updated_node = updated_nodes[i]
+            temp_state = deepcopy(state_sequence[end])  # Copy the last state
+            # if initial_state[updated_node[1], updated_node[2]] = false then state has to be updated to true and vice-versa
+            if state_sequence[end][updated_node[1], updated_node[2]] == false
+                temp_state[updated_node[1], updated_node[2]] = true
+            else
+                temp_state[updated_node[1], updated_node[2]] = false
+            end
+            push!(state_sequence, temp_state)
+        end
+        return state_sequence
     end
     # function multiple_simulations(grid_params, model_params)
     #     state_sequences = [] # Array{Array{Bool, 2}, model_params.num_simulations}

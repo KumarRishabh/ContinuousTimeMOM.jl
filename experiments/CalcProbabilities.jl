@@ -130,9 +130,5 @@ prob_3 = compute_probabilities(loglikelihoods_with_model_params_3, model_params_
 prob_4 = compute_probabilities(loglikelihoods_with_model_params_4, model_params_4, grid_params)
 
 
-loglikelihoods_2 = compute_loglikelihood(model_params_2, all_state_sequences[1], all_times[1], all_updated_nodes[1])
-loglikelihoods_3 = compute_loglikelihood(model_params_3, all_state_sequences[1], all_times[1], all_updated_nodes[1])
-loglikelihoods_4 = compute_loglikelihood(model_params_4, all_state_sequences[1], all_times[1], all_updated_nodes[1])
-
 
 # test functions

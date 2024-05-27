@@ -158,6 +158,9 @@ for i ∈ 1:1000
     times = all_times[i]
     # compute the loglikelihood for the current state sequence
     loglikelihoods = compute_loglikelihood(model_params_1, state_sequence, times, all_updated_nodes[i])
+    println("Length of state_sequence: ", length(state_sequence))
+    println("Length of times: ", length(times))
+    println("Length of updated_nodes: ", length(all_updated_nodes[i]))
     # simulate uniform [0, C]
     uniform_sample = rand() * C
     # if likelihood is greater than the threshold then reject the sample
