@@ -31,6 +31,7 @@ end
 # with rate = 100 and observe the state of the node with some error 
 # For example, if X[i, j] = 1 (infected) then the observtion is correct with probability 0.80
 # and if X[i, j] = 0 (not infected) then the observation is correct with probability 0.95
+
 function initialize_particles(num_particles, grid_params, model_params)::Dict{Int,Vector{Particle}}
     particles = Dict{Int,Vector{Particle}}()
     initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params)
@@ -149,9 +150,6 @@ for i ∈ eachindex(observation_time_stamps)
             
             # take the average of the weights 
         end
-        
-
-
     end
 
     # resample the particles
@@ -167,8 +165,12 @@ for i ∈ eachindex(observation_time_stamps)
     
     for j ∈ num_particles[1]
         total_offsprings = 0
+        temp_particles = deepcopy(new_particles)
+        deleted_particles = 0
         for k ∈ eachindex(new_particles[j])
             actual_num_particles += 1
+            
+            println(new_particles[j][k].weight, "is the weight of the particle at index ", k, " at time stamp ", observation_time_stamps[i])
             if new_particles[j][k].weight + V[actual_num_particles] ∉ (average_weights[1] / r, average_weights[1] * r) # To branch
                 # add new particles to the end of the new_particle[j] list
                 # split the likelihood to get the integer and the decimal part
@@ -181,31 +183,35 @@ for i ∈ eachindex(observation_time_stamps)
                 if num_offspring > 0 # branch the particle
                     total_offsprings += num_offspring - 1
                     for _ ∈ 1:num_offspring - 1
-                        push!(new_particles[j], deepcopy(new_particles[j][k]))
+                        push!(temp_particles[j], deepcopy(new_particles[j][k]))
                         println("Particle added")
                         # println("Total particles at time stamp ", observation_time_stamps[i], " is ", count_total_particles(particle_history, observation_time_stamps[i]))
                     end
                 else # kill the particle
-                   deleteat!(new_particles[j], k)
+                   deleteat!(temp_particles[j], k - deleted_particles)
                    println("Particle deleted")
                    total_offsprings -= 1
+                   deleted_particles += 1
                 end
             end
         end
+        new_particles = temp_particles # update the particles
         particle_history[Float32(observation_time_stamps[i])] = deepcopy(new_particles)
 
         # print("Total particles at time stamp ", observation_time_stamps[i], " is ", count_total_particles(particle_history, observation_time_stamps[i]))
         # if num_particles[i+1] does not exist then create it otherwise update it
         if i+1 in keys(num_particles)
             num_particles[i+1] += total_offsprings
-            println("Inside the if statement")
+            println("Inside the if statement with total offsprings ", total_offsprings, " at time stamp ", observation_time_stamps[i+1])
             # println("Number of particles at time stamp ", observation_time_stamps[i+1], " is ", num_particles[i+1])
         else
-            println("Inside the else statement")
+            println("Inside the else statement with total offsprings ", total_offsprings, " at time stamp ", observation_time_stamps[i+1])
             push!(num_particles, total_offsprings + num_particles[end])
             # println("Number of particles at time stamp ", observation_time_stamps[i+1], " is ", num_particles[i+1])
         end
-        
+        println("Particle vector:", new_particles)
+        # count the branched particles for each particle
+        println("Branched particles")
     end
 end
 
