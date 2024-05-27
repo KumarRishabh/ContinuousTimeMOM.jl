@@ -28,12 +28,13 @@ state_sequence, times = ContactProcess.run_simulation!(state, rates, num_steps, 
 p = heatmap(state_sequence[1], color=:grays, legend=false)
 # Issue: Why isn't the state_sequence gets updated in the loop?
 # Solution: The state_sequence is not getting updated because the state is not being updated in the loop.
+num_steps = 50
 anim = @animate for i ∈ 1:num_steps
     heatmap!(p, state_sequence[i], color=:grays, legend=false)
     # sleep(1)
 end
 
-gif(anim, "contact_process.gif", fps=10)
+gif(anim, "contact_process.gif", fps=1)
 
 
 
