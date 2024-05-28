@@ -34,17 +34,17 @@ end
 
 function initialize_particles(num_particles, grid_params, model_params)::Dict{Int,Vector{Particle}}
     particles = Dict{Int,Vector{Particle}}()
-    initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params)
     for i ∈ 1:num_particles
+        initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="complete_chaos")
         particles[i] = [Particle(state = initial_state, weight = 1.0)]
     end
     return particles
 end
 
 function observe_node(state, i, j; infection_error_rate = 0.80, recovery_error_rate = 0.95)
-    if state[i, j] == 1
+    if state[i, j] == 1 # infected
         return rand() < infection_error_rate
-    else
+    else # not infected
         return rand() < 1 - recovery_error_rate
     end
 end
@@ -94,10 +94,10 @@ end
 
 function likelihood(hidden_state, observed_state)
     # q_bar is the canonical probability of the observed state given the hidden state which is 1/2
-    if hidden_state == 1
-        return hidden_state[observed_state[2][1], observed_state[2][2]] ? 0.80 : 0.20
-    else
-        return hidden_state[observed_state[2][1], observed_state[2][2]] ? 0.05 : 0.95
+    if hidden_state[observed_state[2][1], observed_state[2][2]] == true
+        return observed_state[1] ? 0.80 : 0.20
+    elseif hidden_state[observed_state[2][1], observed_state[2][2]] == false
+        return observed_state[1] ? 0.05 : 0.95
     end
 end
 
@@ -120,18 +120,19 @@ observed_state, time = observe_state(state)
 observed_state[2][1]
 observations, observation_time_stamps = get_observations_from_state_sequence(state_sequence, model_params.time_limit, transition_times)
 observed_dict = Dict(observation_time_stamps .=> observations)
-num_particles = [100] # initially start with 100 particles
+initial_num_particles = 1000 # initially start with 100 particles
 # between the observation time stamps, simulate the contact process with state and rates
 t_curr, t_next = 0, 0
 V = 0.2*rand() - 0.1
 U = 0.2*rand() - 0.1
-r = 1.02 # resampling parameter
+r = 2.5 # resampling parameter
+println("Observations: ", observations)
 # need to create a data structure to associate how many particles are at each observation time stamp
 # since the number of particles can change at each observation time stamp due to branching process 
 # we need to store the number of particles at each observation time stamp
 # particles = {particle_1 => [instance_1, instance_2, instance_3], particle_2 => [instance_1, instance_2, instance_3, instance_4]} for 100 particles
 
-particles = initialize_particles(num_particles[1], grid_params, model_params)
+particles = initialize_particles(initial_num_particles, grid_params, model_params)
 particle_history = Dict{Float32, Dict{Int, Vector{Particle}}}()
 particle_history[0.0] = deepcopy(particles)
 # deepcopy initialized particles 
@@ -139,7 +140,7 @@ new_particles = deepcopy(particles)
 
 particle_history[0.0]
 typeof(particle_history[0.0][1])
-initial_num_particle = 100
+
 progress = Progress(length(observation_time_stamps), 1, "Starting the particle filter...")
 for i ∈ eachindex(observation_time_stamps) 
     next!(progress)
@@ -160,7 +161,7 @@ for i ∈ eachindex(observation_time_stamps)
     # TODO: Implement the branching process
     new_model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = t_next, prob_infections = 0.05, num_simulations = 1000) # rates are defined to be per day
     
-    for j ∈ 1:initial_num_particle
+    for j ∈ 1:initial_num_particles
         # initial particles that you started with 
         # update the particle weight
         for k in eachindex(new_particles[j])
@@ -168,7 +169,8 @@ for i ∈ eachindex(observation_time_stamps)
             rates = ContactProcess.calculate_all_rates(state, grid_params, new_model_params)
             X_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, new_model_params)
             # print("Observations:", observations[i])
-            new_particles[j][k].weight = new_particles[j][k].weight * likelihood(X_sequence[end], observations[i]) * 2  
+            new_particles[j][k].weight = new_particles[j][k].weight * likelihood(X_sequence[end], observations[i]) * 2
+            new_particles[j][k].state = copy(X_sequence[end])
             # take the average of the weights 
         end
     end
@@ -181,16 +183,16 @@ for i ∈ eachindex(observation_time_stamps)
     if i != 1
         total_particles = count_total_particles(particle_history, observation_time_stamps[i - 1])
         println("Total particles at time stamp ", observation_time_stamps[i - 1], " is ", total_particles)
-        average_weights = sum([sum([particle.weight for particle in new_particles[j]]) for j in 1:initial_num_particle]) / total_particles
+        average_weights = sum([sum([particle.weight for particle in new_particles[j]]) for j in 1:initial_num_particles]) / initial_num_particles
     else
-        average_weights = sum([sum([particle.weight for particle in new_particles[j]]) for j in 1:initial_num_particle]) / initial_num_particle
+        average_weights = sum([sum([particle.weight for particle in new_particles[j]]) for j in 1:initial_num_particles]) / initial_num_particles
     end
 
     println("Average weights: ", average_weights)
     
     actual_num_particles = 0
     temp_particles = deepcopy(new_particles)
-    for j ∈ num_particles[1]
+    for j ∈ 1:initial_num_particles
         total_offsprings = 0
         
         deleted_particles = 0
@@ -198,39 +200,33 @@ for i ∈ eachindex(observation_time_stamps)
             actual_num_particles += 1
             
             V = rand(Uniform(-0.1, 0.1)) 
-            # println(new_particles[j][k].weight, "is the weight of the particle at index ", k, " at time stamp ", observation_time_stamps[i])
-            if new_particles[j][k].weight + V ∉ (average_weights[1] / r, average_weights[1] * r) # To branch
-                # add new particles to the end of the new_particle[j] list
-                # split the likelihood to get the integer and the decimal part
 
+            if !(average_weights[1] / r <= new_particles[j][k].weight + V <= average_weights[1] * r) # To branch                # add new particles to the end of the new_particle[j] list
+                # split the likelihood to get the integer and the decimal part
                 num_offspring = floor(Int, new_particles[j][k].weight/average_weights[1])
                 # with bernoulli distribution with probability of success = divrem(new_particles[j][k].weight, average_weights)[2] add to the offspring
                 num_offspring += rand(Bernoulli((new_particles[j][k].weight/ average_weights[1]) - num_offspring))
                 # add these offsprings to the end of the list 
-                new_particles[j][k].weight = average_weights[1]
+                new_particles[j][k].weight = copy(average_weights[1])
                 if num_offspring > 0 # branch the particle
-                    print("Number of offsprings: ", num_offspring, " at time stamp ", observation_time_stamps[i])
+                    # println("Number of offsprings: ", num_offspring, " at time stamp ", observation_time_stamps[i])
                     for _ ∈ 1:num_offspring - 1
                         push!(temp_particles[j], deepcopy(new_particles[j][k]))
                         # println("Total particles at time stamp ", observation_time_stamps[i], " is ", count_total_particles(particle_history, observation_time_stamps[i]))
                     end
                 else # kill the particle
-                    println("Deleting particle at index ", k - deleted_particles, " at time stamp ", observation_time_stamps[i])
+                    # println("Deleting particle at index ", k - deleted_particles, " at time stamp ", observation_time_stamps[i])
                     deleteat!(temp_particles[j], k - deleted_particles)
                     deleted_particles += 1
                 end
             else 
-                total_offsprings += 1
+                # println("Particle at index ", k, " at time stamp ", observation_time_stamps[i], " is not branching")
                 # weights remain the same 
             end
         end
-        new_particles = temp_particles # update the particles
-        particle_history[Float32(observation_time_stamps[i])] = deepcopy(new_particles)
-
-        # print("Total particles at time stamp ", observation_time_stamps[i], " is ", count_total_particles(particle_history, observation_time_stamps[i]))
-        # if num_particles[i+1] does not exist then create it otherwise update i
-
     end
+    new_particles = temp_particles # update the particles
+    particle_history[Float32(observation_time_stamps[i])] = deepcopy(new_particles)
 end
 
 
@@ -244,13 +240,12 @@ estimated_number_of_infections = []
 # use particle weights to do a weighted average of the number of infections for each particle
 for i ∈ eachindex(observation_time_stamps)
     estimate = 0
-    denominator = 0
-    for j ∈ 1:num_particles[1]
+    for j ∈ 1:initial_num_particles
         estimate += sum([particle.weight * sum(particle.state) for particle in particle_history[Float32(observation_time_stamps[i])][j]])
-        denominator += 1
     end 
-    push!(estimated_number_of_infections, estimate/denominator)
+    push!(estimated_number_of_infections, estimate/initial_num_particles)
 end
 print("Actual number of infections: ", actual_number_of_infections)
 print("Estimated number of infections: ", estimated_number_of_infections)
 
+observation_time_stamps
