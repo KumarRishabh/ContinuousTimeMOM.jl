@@ -60,7 +60,7 @@ module ContactProcess
             # Sample randomly the nodes which will be infected (mode = "complete_chaos")
             for i in 2:grid_params.width_with_padding - 1
                 for j in 2:grid_params.height_with_padding - 1
-                    if rand() < 0.5
+                    if rand() < 0.3
                         state[i, j] = true
                     end
                 end
