@@ -262,26 +262,59 @@ plot!(observation_time_stamps, estimated_number_of_infections, label = "Estimate
 # make a heatmap of the estimated number of infections at each time stamp and compare it with the actual number of infections
 # do a weighted average of the infection using particle.weights
 function estimate_infection_grid(particle_history, time_stamp)
-    estimate = zeros(Float64, 17, 17)
+    estimate = zeros(Float64, 12, 12)
     normalization_factor = 0
     for j ∈ 1:initial_num_particles
-        estimate += sum([particle.weight * particle.state for particle in particle_history[Float32(time_stamp)][j]])
-        normalization_factor += sum([particle.weight for particle in particle_history[Float32(time_stamp)][j]])
+        for particle in particle_history[Float32(time_stamp)][j]
+            estimate .+= particle.weight * particle.state
+            normalization_factor += particle.weight
+        end
     end
     estimate /= normalization_factor
+    
+    for j in 1:size(estimate, 1)
+        for k in 1:size(estimate, 2)
+            if estimate[j, k] > 0.5
+                estimate[j, k] = 1
+            else
+                estimate[j, k] = 0
+            end
+        end
+    end
+
     return estimate
+end
+
+function actual_infection_grid(state_sequence, time_stamp, transition_times)
+    return state_sequence[findlast(x -> x <= time_stamp, transition_times)]
 end
 
 function calculate_error(estimate, actual_signal)
     error = 0
-    for i ∈ 1:size(estimate, 1)
-        for j ∈ 1:size(estimate, 2)
-            error += abs(estimate[i, j] - actual_signal[i, j])
+    for i in 1:size(estimate, 1)
+        for j in 1:size(estimate, 2)
+            if estimate[i, j] != actual_signal[i, j]
+                error += 1
+            end
         end
     end
     return error
 end
 
+function calculate_error_trajectory(particle_history, observation_time_stamps, state_sequence, transition_times)
+    errors = []
+    for i ∈ eachindex(observation_time_stamps)
+        estimate = estimate_infection_grid(particle_history, observation_time_stamps[i])
+        actual_signal = actual_infection_grid(state_sequence, observation_time_stamps[i], transition_times)
+        error = calculate_error(estimate, actual_signal)
+        push!(errors, error)
+    end
+    return errors
+end
+
+errors = calculate_error_trajectory(particle_history, observation_time_stamps, state_sequence, transition_times)
+plot(observation_time_stamps, errors, label = "Error", xlabel = "Time", ylabel = "Error", title = "Error in estimating the infection grid")
+savefig("error_plot.png")
 function get_heatmap_data(particle_history, time_stamp)
     heatmap_data = []
     i = Float32(time_stamp)
@@ -312,32 +345,3 @@ end
 
 sample_time_stamps = sample(observation_time_stamps, 5)
 
-for i ∈ eachindex(sample_time_stamps)
-    heatmap_data = get_heatmap_data(particle_history, sample_time_stamps[i])
-    # convert heatmap_data to a 17 x 17 matrix
-    convert_heatmap_data = zeros(Float64, 17, 17)
-    for j ∈ 1:17
-        for k ∈ 1:17
-            convert_heatmap_data[j, k] = heatmap_data[1][j, k]
-        end
-    end
-
-    # println("Heatmap data: ", heatmap_data)
-    p = plot_heatmap(convert_heatmap_data, sample_time_stamps[i])
-    # why can't I see the heatmap plots?
-    # Solution: The heatmap plots are not being displayed because the plot_heatmap function is not being called
-    # It is being called but the plot is not being displayed because the plot_heatmap function is not returning the plot    
-end
-
-heatmap_data = get_heatmap_data(particle_history, sample_time_stamps[end])
-convert_heatmap_data = zeros(Float64, 17, 17)
-for j ∈ 1:17
-    for k ∈ 1:17
-        convert_heatmap_data[j, k] = heatmap_data[1][j, k]
-    end
-end
-plot_heatmap(convert_heatmap_data, observation_time_stamps[end])
-# edit the heatmap by coloring the nodes green if the node is acually infected
-
-heatmap!
-heatmap(heatmap_data, color = :grays, title = "Estimated number of infections at time stamp: $sample_time_stamps")
