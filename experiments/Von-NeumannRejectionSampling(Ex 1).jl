@@ -29,10 +29,10 @@ state_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rat
 # @load "data/state_sequences_1.jld" state_sequences
 
 all_state_sequences, all_times, all_updated_nodes = ContactProcess.multiple_simulations(grid_params, model_params)
-model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = model_params.num_simulations) # rates are defined to be per day
-model_params_2 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.1001, time_limit = 1, prob_infections = 0.01, num_simulations = model_params.num_simulations) # rates are defined to be per day
-model_params_3 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.0999, time_limit = 1, prob_infections = 0.01, num_simulations = model_params.num_simulations) # rates are defined to be per day
-model_params_4 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.0999, time_limit = 1, prob_infections = 0.01, num_simulations = model_params.num_simulations) # rates are defined to be per day
+model_params_1 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.0999, time_limit = model_params.time_limit, prob_infections = model_params.prob_infections, num_simulations = model_params.num_simulations) # rates are defined to be per day
+model_params_2 = ContactProcess.ModelParameters(infection_rate = 0.0499, recovery_rate = 0.1001, time_limit = model_params.time_limit, prob_infections = model_params.prob_infections, num_simulations = model_params.num_simulations) # rates are defined to be per day
+model_params_3 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.0999, time_limit = model_params.time_limit, prob_infections = model_params.prob_infections, num_simulations = model_params.num_simulations) # rates are defined to be per day
+model_params_4 = ContactProcess.ModelParameters(infection_rate = 0.0501, recovery_rate = 0.1001, time_limit = model_params.time_limit, prob_infections = model_params.prob_infections, num_simulations = model_params.num_simulations) # rates are defined to be per day
 
 # write a function to compute the sum of the edges of a matrix 
 
@@ -83,9 +83,9 @@ end
 
 # write a function to permute the simulations
 
-progress = Progress(4000, 1, "Computing loglikelihoods")
+progress = Progress(4 * model_params.num_simulations, 1, "Computing loglikelihoods")
 C = -Inf
-for i ∈ 1:1000
+for i ∈ 1:model_params.num_simulations
     # sample from the permuted indices
     next!(progress)
     state_sequence = all_state_sequences[i]
@@ -93,7 +93,7 @@ for i ∈ 1:1000
     # compute the loglikelihood for the current state sequence
     loglikelihoods = compute_loglikelihood(model_params_1, state_sequence, times, all_updated_nodes[i])
     # if likelihood is greater than the threshold then reject the sample
-    println(loglikelihoods[end])
+    # println(exp(loglikelihoods[end]))
     if exp(loglikelihoods[end]) > C
         C = exp(loglikelihoods[end])
     end
@@ -101,7 +101,7 @@ end
 
 println("Upper Bound: ", C)
 
-for i ∈ 1:1000
+for i ∈ 1:model_params.num_simulations
     # sample from the permuted indices
     next!(progress)
     state_sequence = all_state_sequences[i]
@@ -110,6 +110,8 @@ for i ∈ 1:1000
     loglikelihoods = compute_loglikelihood(model_params_2, state_sequence, times, all_updated_nodes[i])
     # if likelihood is greater than the threshold then reject the sample
     # compute C such that it bounds the loglikelihoods
+    # println(exp(loglikelihoods[end]))
+
     if exp(loglikelihoods[end]) > C
         C = exp(loglikelihoods[end])
     end
@@ -117,7 +119,7 @@ end
 println("Upper Bound: ", C)
 # simulate uniform [0, C]
 
-for i ∈ 1:1000
+for i ∈ 1:model_params.num_simulations
     # sample from the permuted indices
     next!(progress)
     state_sequence = all_state_sequences[i]
@@ -125,13 +127,15 @@ for i ∈ 1:1000
     # compute the loglikelihood for the current state sequence
     loglikelihoods = compute_loglikelihood(model_params_3, state_sequence, times, all_updated_nodes[i])
     # if likelihood is greater than the threshold then reject the sample
+    # println(exp(loglikelihoods[end]))
+
     if exp(loglikelihoods[end]) > C
         C = exp(loglikelihoods[end])
     end
 end
 println("Upper Bound: ", C)
 
-for i ∈ 1:1000
+for i ∈ 1:model_params.num_simulations
     # sample from the permuted indices
     next!(progress)
     state_sequence = all_state_sequences[i]
@@ -139,6 +143,8 @@ for i ∈ 1:1000
     # compute the loglikelihood for the current state sequence
     loglikelihoods = compute_loglikelihood(model_params_4, state_sequence, times, all_updated_nodes[i])
     # if likelihood is greater than the threshold then reject the sample
+    # println(exp(loglikelihoods[end]))
+
     if exp(loglikelihoods[end]) > C
         C = exp(loglikelihoods[end])
     end
@@ -152,15 +158,15 @@ param_3_samples = []
 param_4_samples = []
 
 # do uniform sampling for the four models with Unif[0, C] and accept the samples if the likelihood is greater than the threshold
-for i ∈ 1:1000
+for i ∈ 1:model_params.num_simulations
     # sample from the permuted indices
     state_sequence = all_state_sequences[i]
     times = all_times[i]
     # compute the loglikelihood for the current state sequence
     loglikelihoods = compute_loglikelihood(model_params_1, state_sequence, times, all_updated_nodes[i])
-    println("Length of state_sequence: ", length(state_sequence))
-    println("Length of times: ", length(times))
-    println("Length of updated_nodes: ", length(all_updated_nodes[i]))
+    # println("Length of state_sequence: ", length(state_sequence))
+    # println("Length of times: ", length(times))
+    # println("Length of updated_nodes: ", length(all_updated_nodes[i]))
     # simulate uniform [0, C]
     uniform_sample = rand() * C
     # if likelihood is greater than the threshold then reject the sample
@@ -170,7 +176,7 @@ for i ∈ 1:1000
 end
 
 # Do the same for the other three models
-for i ∈ 1:1000
+for i ∈ 1:model_params.num_simulations
     # sample from the permuted indices
     state_sequence = all_state_sequences[i]
     times = all_times[i]
@@ -184,7 +190,7 @@ for i ∈ 1:1000
     end
 end
 
-for i ∈ 1:1000
+for i ∈ 1:model_params.num_simulations
     # sample from the permuted indices
     state_sequence = all_state_sequences[i]
     times = all_times[i]
@@ -198,7 +204,7 @@ for i ∈ 1:1000
     end
 end
 
-for i ∈ 1:1000
+for i ∈ 1:model_params.num_simulations
     # sample from the permuted indices
     state_sequence = all_state_sequences[i]
     times = all_times[i]
