@@ -12,6 +12,7 @@ Random.seed!(10)
 using Parameters
 using Distributed
 using Serialization
+using FileIO
 
 dir_path = joinpath(@__DIR__)
 @with_kw mutable struct Particle
@@ -40,12 +41,8 @@ end
 
 function initialize_particles_with_signals(num_particles, grid_params, model_params, signal_state, signal_rate)::Dict{Int,Vector{Particle}}
     particles = Dict{Int,Vector{Particle}}()
-    for i ∈ 1:Int(num_particles * 3 /4)
-        initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="")
-        particles[i] = [Particle(state = initial_state, weight = 1.0)]
-    end
-    for i ∈ Int(num_particles * 3 / 4):num_particles
-        initial_state, initial_rate = signal_state, signal_rate
+    for i ∈ 1:Int(num_particles)
+        initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="fixed_probability")
         particles[i] = [Particle(state = initial_state, weight = 1.0)]
     end
     return particles
@@ -139,6 +136,8 @@ end
 
 
 function branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations; r = 1.5, particle_initialization = "random",signal_state = zeros(Bool, 12, 12), signal_rate = 100.0)
+    # TODO: Code cleanup, instead of using hashmaps, use arrays
+    # TODO: Use a more efficient data structure to store the particle history and save it to memory 
     t_curr, t_next = 0, 0
     if particle_initialization == "random"
         particles = initialize_particles(initial_num_particles, grid_params, model_params)
@@ -169,13 +168,26 @@ function branching_particle_filter(initial_num_particles, grid_params, model_par
         new_model_params = ContactProcess.ModelParameters(infection_rate=0.05, recovery_rate=0.1, time_limit=t_next, prob_infections=0.05, num_simulations=1000) # rates are defined to be per day
 
         for j ∈ 1:initial_num_particles
-            for k in eachindex(new_particles[j])
-                state = new_particles[j][k].state
-                rates = ContactProcess.calculate_all_rates(state, grid_params, new_model_params)
-                X_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, new_model_params)
-                new_particles[j][k].weight = new_particles[j][k].weight * likelihood(X_sequence[end], observations[i]) * 2 / average_weights[1]
-                new_particles[j][k].state = copy(X_sequence[end])
-            end
+            if average_weights[1] > 2.718^20
+                for k in eachindex(new_particles[j])
+                    state = new_particles[j][k].state
+                    rates = ContactProcess.calculate_all_rates(state, grid_params, new_model_params)
+                    X_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, new_model_params)
+                    
+                    new_particles[j][k].weight = new_particles[j][k].weight * likelihood(X_sequence[end], observations[i]) * 2 / average_weights[1]
+                    new_particles[j][k].state = copy(X_sequence[end])
+                end
+
+            else
+                for k in eachindex(new_particles[j])
+                    state = new_particles[j][k].state
+                    rates = ContactProcess.calculate_all_rates(state, grid_params, new_model_params)
+                    X_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, new_model_params)
+
+                    new_particles[j][k].weight = new_particles[j][k].weight * likelihood(X_sequence[end], observations[i]) * 2 / average_weights[1]
+                    new_particles[j][k].state = copy(X_sequence[end])
+                end
+            end 
         end
 
         if i != 1
@@ -192,8 +204,8 @@ function branching_particle_filter(initial_num_particles, grid_params, model_par
             deleted_particles = 0
             for k ∈ eachindex(new_particles[j])
                 actual_num_particles += 1
-                V = rand(Uniform(-0.1, 0.1))
-                if ((average_weights[1] / r <= new_particles[j][k].weight + V) && (new_particles[j][k].weight + V <= average_weights[1] * r)) == false # To branch
+                # V = rand(Uniform(-0.1, 0.1))
+                if ((average_weights[1] / r <= new_particles[j][k].weight) && (new_particles[j][k].weight <= average_weights[1] * r)) == false # To branch
                     num_offspring = floor(Int, new_particles[j][k].weight / average_weights[1])
                     num_offspring += rand(Bernoulli((new_particles[j][k].weight / average_weights[1]) - num_offspring))
                     new_particles[j][k].weight = average_weights[1]
@@ -201,7 +213,9 @@ function branching_particle_filter(initial_num_particles, grid_params, model_par
                         for _ ∈ 1:(num_offspring-1)
                             push!(temp_particles[j], deepcopy(new_particles[j][k]))
                         end
+
                     else # kill the particle
+
                         deleteat!(temp_particles[j], k - deleted_particles)
                         deleted_particles += 1
                     end
@@ -277,7 +291,7 @@ function saved_branching_particle_filter(initial_num_particles, grid_params, mod
         # write to a file called as particle_history.jld with the key as observation_time_stamps[i] the value as new_particles
         if i % 64 == 0 || i == length(observation_time_stamps)
             println("Writing to file $i")
-            open("$dir_path/particle_history.jls", "w+") do io
+            open("$dir_path/particle_history.jls", "a") do io
                 serialize(io, (Float32(observation_time_stamps[i]), new_particles))
                 particle_batch = Dict{Float32,Dict{Int,Vector{Particle}}}()
             end
@@ -288,7 +302,7 @@ end
 
 
 grid_params = ContactProcess.GridParameters(width = 10, height = 10)
-model_params = ContactProcess.ModelParameters(infection_rate = 0.05, recovery_rate = 0.1, time_limit = 100, prob_infections = 0.3, num_simulations = 1000) # rates are defined to be per day
+model_params = ContactProcess.ModelParameters(infection_rate = 0.025, recovery_rate = 0.05, time_limit = 25, prob_infections = 0.5, num_simulations = 1000) # rates are defined to be per day
 
 state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_params; mode = "fixed_probability")
 state_sequence, transition_times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, model_params)
@@ -296,33 +310,15 @@ observed_state, time = observe_state(state)
 observed_state[2][1]
 observations, observation_time_stamps = get_observations_from_state_sequence(state_sequence, model_params.time_limit, transition_times)
 observed_dict = Dict(observation_time_stamps .=> observations)
-initial_num_particles = 100 # initially start with 100 particles
+initial_num_particles = 2000 # initially start with 100 particles
 # between the observation time stamps, simulate the contact process with state and rates
 V = 0.2*rand() - 0.1
 U = 0.2*rand() - 0.1
 
-# need to create a data structure to associate how many particles are at each observation time stamp
-# since the number of particles can change at each observation time stamp due to branching process 
-# we need to store the number of particles at each observation time stamp
-# particles = {particle_1 => [instance_1, instance_2, instance_3], particle_2 => [instance_1, instance_2, instance_3, instance_4]} for 100 particles
 
-
-# particle_history = branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations, r = 3.5, particle_initialization = "signal", signal_state = state, signal_rate = rates)
-# # count the number of indices in the particles dict that have an empty array in them
-# function count_empty_particles(particle_history, time_stamp)
-#     empty_particles = 0
-#     time_stamp = Float32(time_stamp)
-#     for key in keys(particle_history[Float32(time_stamp)])
-#         if isempty(particle_history[time_stamp][key])
-#             empty_particles += 1
-#         end
-#     end
-#     return empty_particles
-# end
-# # Plot actual number of infections at each time stamp calculated from the state sequence
-#  count_empty_particles(particle_history, observation_time_stamps[end])
 saved_branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations, r=3.5, particle_initialization="signal", signal_state=state, signal_rate=rates)
-
+particle_history = branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations, r=10, particle_initialization="signal", signal_state=state, signal_rate=rates)
+particle_history = load("$dir_path/particle_history.jls")
 
 actual_number_of_infections = []
 for i ∈ eachindex(observation_time_stamps)
@@ -345,7 +341,10 @@ print("Actual number of infections: ", actual_number_of_infections)
 print("Estimated number of infections: ", estimated_number_of_infections)
 
 println("Initial number of particles: ", initial_num_particles)
+println("Total number of particles: ", count_total_particles(particle_history, observation_time_stamps[end]))
 # plot the actual number of infections and the estimated number of infections
+println("Number of observations: ", length(observation_time_stamps))
+println("Length of actual number of infections: ", length(actual_number_of_infections))
 plot(observation_time_stamps, actual_number_of_infections, label = "Actual number of infections", xlabel = "Time", ylabel = "Number of infections", title = "Actual vs Estimated number of infections")
 plot!(observation_time_stamps, estimated_number_of_infections, label = "Estimated number of infections")
 
@@ -362,16 +361,6 @@ function estimate_infection_grid(particle_history, time_stamp)
         end
     end
     estimate /= normalization_factor
-    
-    for j in 1:size(estimate, 1)
-        for k in 1:size(estimate, 2)
-            if estimate[j, k] > 0.5
-                estimate[j, k] = 1
-            else
-                estimate[j, k] = 0
-            end
-        end
-    end
 
     return estimate
 end
@@ -384,12 +373,11 @@ function calculate_error(estimate, actual_signal)
     error = 0
     for i in 1:size(estimate, 1)
         for j in 1:size(estimate, 2)
-            if estimate[i, j] != actual_signal[i, j]
-                error += 1
-            end
+            error += (estimate[i, j] - actual_signal[i, j])^2
         end
     end
-    return error
+
+    return error/(size(estimate, 1) * size(estimate, 2))
 end
 
 function calculate_error_trajectory(particle_history, observation_time_stamps, state_sequence, transition_times)
@@ -402,10 +390,10 @@ function calculate_error_trajectory(particle_history, observation_time_stamps, s
     end
     return errors
 end
-
+length(observation_time_stamps)
 errors = calculate_error_trajectory(particle_history, observation_time_stamps, state_sequence, transition_times)
 plot(observation_time_stamps, errors, label = "Error", xlabel = "Time", ylabel = "Error", title = "Error in estimating the infection grid")
-savefig("error_plot.png")
+savefig("error_plot_2.png")
 function get_heatmap_data(particle_history, time_stamp)
     heatmap_data = []
     i = Float32(time_stamp)
@@ -437,3 +425,26 @@ end
 sample_time_stamps = sample(observation_time_stamps, 5)
 
 particle_history = load("$dir_path/particle_history.jld")
+
+# save particle history to a csv file
+function save_particle_history(particle_history, file_name)
+    open(file_name, "w") do io
+        for key in keys(particle_history)
+            for i ∈ 1:initial_num_particles
+                for particle in particle_history[key][i]
+                    write(io, "$key, $i, $(particle.state), $(particle.weight)\n")
+                end
+            end
+        end
+    end
+end
+
+function save_simulation_to_csv(state_sequence, transition_times, file_name)
+    open(file_name, "w") do io
+        for i ∈ 1:length(transition_times)
+            write(io, "$transition_times[i], $(state_sequence[i])\n")
+        end
+    end
+end
+
+save_particle_history(particle_history, "$dir_path/particle_history.csv")
