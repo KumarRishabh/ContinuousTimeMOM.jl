@@ -10,8 +10,10 @@ using JLD2
 using Distributions
 Random.seed!(10)
 using Parameters
+using Distributed
+using Serialization
 
-
+dir_path = joinpath(@__DIR__)
 @with_kw mutable struct Particle
     # state of the particle is defined as a 2D array with the same dimensions as the grid
     state::Array{Bool, 2} = zeros(Bool, 12, 12) # 20 x 20 grid with all zeros
@@ -220,6 +222,7 @@ function saved_branching_particle_filter(initial_num_particles, grid_params, mod
     elseif particle_initialization == "signal"
         particles = initialize_particles_with_signals(initial_num_particles, grid_params, model_params, signal_state, signal_rate)
     end
+    particle_batch = Dict{Float32,Dict{Int,Vector{Particle}}}()
     past_particles = deepcopy(particles)
     new_particles = deepcopy(particles)
     average_weights = [1.0]
@@ -247,12 +250,9 @@ function saved_branching_particle_filter(initial_num_particles, grid_params, mod
             end
         end
 
-        total_particles = count_total_particles(past_particles)
-
         actual_num_particles = 0
         temp_particles = deepcopy(new_particles)
         for j ∈ 1:initial_num_particles
-            total_offsprings = 0
             deleted_particles = 0
             for k ∈ eachindex(new_particles[j])
                 actual_num_particles += 1
@@ -273,8 +273,15 @@ function saved_branching_particle_filter(initial_num_particles, grid_params, mod
             end
         end
         new_particles = temp_particles # update the particles
+        particle_batch[Float32(observation_time_stamps[i])] = deepcopy(new_particles)
         # write to a file called as particle_history.jld with the key as observation_time_stamps[i] the value as new_particles
-        save("particle_history.jld", "observation_time_stamps_$i", new_particles)
+        if i % 64 == 0 || i == length(observation_time_stamps)
+            println("Writing to file $i")
+            open("$dir_path/particle_history.jls", "w+") do io
+                serialize(io, (Float32(observation_time_stamps[i]), new_particles))
+                particle_batch = Dict{Float32,Dict{Int,Vector{Particle}}}()
+            end
+        end
     end
     return 
 end
@@ -289,19 +296,18 @@ observed_state, time = observe_state(state)
 observed_state[2][1]
 observations, observation_time_stamps = get_observations_from_state_sequence(state_sequence, model_params.time_limit, transition_times)
 observed_dict = Dict(observation_time_stamps .=> observations)
-initial_num_particles = 10000 # initially start with 100 particles
+initial_num_particles = 100 # initially start with 100 particles
 # between the observation time stamps, simulate the contact process with state and rates
 V = 0.2*rand() - 0.1
 U = 0.2*rand() - 0.1
-r = 2 # resampling parameter
-println("Observations: ", observations)
+
 # need to create a data structure to associate how many particles are at each observation time stamp
 # since the number of particles can change at each observation time stamp due to branching process 
 # we need to store the number of particles at each observation time stamp
 # particles = {particle_1 => [instance_1, instance_2, instance_3], particle_2 => [instance_1, instance_2, instance_3, instance_4]} for 100 particles
 
 
-particle_history = branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations, r = 3.5, particle_initialization = "signal", signal_state = state, signal_rate = rates)
+# particle_history = branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations, r = 3.5, particle_initialization = "signal", signal_state = state, signal_rate = rates)
 # # count the number of indices in the particles dict that have an empty array in them
 # function count_empty_particles(particle_history, time_stamp)
 #     empty_particles = 0
@@ -315,6 +321,7 @@ particle_history = branching_particle_filter(initial_num_particles, grid_params,
 # end
 # # Plot actual number of infections at each time stamp calculated from the state sequence
 #  count_empty_particles(particle_history, observation_time_stamps[end])
+saved_branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations, r=3.5, particle_initialization="signal", signal_state=state, signal_rate=rates)
 
 
 actual_number_of_infections = []
@@ -429,4 +436,4 @@ end
 
 sample_time_stamps = sample(observation_time_stamps, 5)
 
-saved_branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations, r = 3.5, particle_initialization = "signal", signal_state = state, signal_rate = rates)
+particle_history = load("$dir_path/particle_history.jld")
