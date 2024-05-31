@@ -37,11 +37,24 @@ counter::Int = 0
 function initialize_particles_as_vectors(num_particles, grid_params, model_params)
     particles = Vector{Particle}()
     for i ∈ 1:num_particles
-        initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="complete_chaos")
+        initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="fixed_probability")
         push!(particles, Particle(state = initial_state, weight = 1.0))
     end
     return particles
 end
+function biased_initialize_particles_as_vectors(num_particles, grid_params, model_params)
+    particles = Vector{Particle}()
+    for i ∈ 1:3
+        initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="fixed_probability")
+        push!(particles, Particle(state = initial_state, weight = 1.0))
+    end
+    for i ∈ 4:num_particles
+        initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="fixed_probability")
+        push!(particles, Particle(state=initial_state, weight=10.0))
+    end
+    return particles
+end
+
 
 function initialize_particles_as_hashmap(num_particles, grid_params, model_params)::Dict{Int,Vector{Particle}}
     particles = Dict{Int,Vector{Particle}}()
@@ -120,13 +133,14 @@ function likelihood(hidden_state, observed_state)
         else
             return 0.2
         end
-    elseif hidden_state[observed_state[2][1], observed_state[2][2]] == false
-        if observed_state[1] == true
-            return 0.05
-        else
-            return 0.95
-        end
+    end 
+
+    if observed_state[1] == true
+        return 0.05
+    else
+        return 0.95
     end
+    
 end
 
 function count_total_particles(particle_history, time_stamp)
@@ -182,36 +196,38 @@ function branching_particle_filter(initial_num_particles, grid_params, model_par
 
             if average_weights > exp(20) || average_weights < exp(-20)
                 new_particles[j].weight = new_particles[j].weight * likelihood(X_sequence[end], observations[i]) * 2 / average_weights
-            
+                # new_particles[j].weight = 2 / average_weights
             else
                 new_particles[j].weight = new_particles[j].weight * likelihood(X_sequence[end], observations[i]) * 2
+                # new_particles[j].weight = 2
             end
-            open("$dir_path/output.txt", "w") do file
+            open("$dir_path/output.txt", "a") do file
                 println(file, "Particle weight: ", new_particles[j].weight, " for $j th particle at time $t_curr")
             end
         end
 
         average_weights = sum([particle.weight for particle in new_particles]) / total_particles
+        open("$dir_path/output.txt", "a") do file
+            println(file, "Average weights at time $t_curr: ", average_weights)
+        end
         temp_particles = deepcopy(new_particles)
         deleted_particles = 0
-
+        total_offsprings = 0
         for j ∈ 1:total_particles
             V = 0.2 * rand() - 0.1
             if ((average_weights / r <= new_particles[j].weight + V) && (new_particles[j].weight + V <= average_weights * r)) == false # To branch
                 num_offspring = floor(Int, new_particles[j].weight / average_weights)
                 # println("The Bernoulli parameter is:", (new_particles[j].weight / average_weights) - num_offspring)
                 num_offspring += rand(Bernoulli((new_particles[j].weight / average_weights) - num_offspring))
-                new_particles[j].weight = average_weights
+                # new_particles[j].weight = deepcopy(average_weights)
+                temp_particles[j - deleted_particles].weight = deepcopy(average_weights)
                 if num_offspring > 0 # branch the particle
                     # println("Branching particle: ", j, " with ", num_offspring, " offsprings")
                     for _ ∈ 1:(num_offspring-1)
-                        
                         push!(temp_particles, deepcopy(new_particles[j]))
-                        open("$dir_path/output.txt", "a") do file
-                            println(file, "Creating offspring from particle: ", j)
-                            println(file, "Total Particles: ", count_total_particles(temp_particles))
-                        end
+                        
                     end
+                    total_offsprings += num_offspring - 1
 
                 else # kill the particle
                     # println("Killing particle: ", j)
@@ -224,6 +240,7 @@ function branching_particle_filter(initial_num_particles, grid_params, model_par
 
         new_particles = deepcopy(temp_particles) # update the particles
         open("$dir_path/output.txt", "a") do file
+            println(file, "Destroyed particles: ", deleted_particles, " Total offsprings: ", total_offsprings)
             println(file, "Total Particles at the end of the iteration $i: ", count_total_particles(new_particles))
         end
         push!(particle_history, new_particles)
@@ -234,22 +251,22 @@ end
 
 
 grid_params = ContactProcess.GridParameters(width = 10, height = 10)
-model_params = ContactProcess.ModelParameters(infection_rate = 0.025, recovery_rate = 0.05, time_limit = 0.4, prob_infections = 0.5, num_simulations = 1000) # rates are defined to be per day
+model_params = ContactProcess.ModelParameters(infection_rate = 0.025, recovery_rate = 0.05, time_limit = 2, prob_infections = 0.5, num_simulations = 1000) # rates are defined to be per day
 
 state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_params; mode = "fixed_probability")
 state_sequence, transition_times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, model_params)
 observed_state, time = observe_state(state)
-observed_state[2][1]
+observed_state
 observations, observation_time_stamps = get_observations_from_state_sequence(state_sequence, model_params.time_limit, transition_times)
 observed_dict = Dict(observation_time_stamps .=> observations)
-initial_num_particles = 50 # initially start with 100 particles
+initial_num_particles = 1000 # initially start with 100 particles
 # between the observation time stamps, simulate the contact process with state and rates
 V = 0.2*rand() - 0.1
 U = 0.2*rand() - 0.1
 
 initialize_particles(initial_num_particles, grid_params, model_params)
 
-particle_history = branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations, r=5.5, signal_state=state, signal_rate=rates)
+particle_history = branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations, r=5, signal_state=state, signal_rate=rates)
 
 # particle_history = load("$dir_path/particle_history.jls")
 
