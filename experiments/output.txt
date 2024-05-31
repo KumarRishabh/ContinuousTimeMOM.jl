@@ -1,0 +1,381 @@
+Particle weight: 0.4 for 1 th particle at time 0
+Particle weight: 1.9 for 2 th particle at time 0
+Particle weight: 0.4 for 3 th particle at time 0
+Particle weight: 0.4 for 4 th particle at time 0
+Particle weight: 0.4 for 5 th particle at time 0
+Particle weight: 1.9 for 6 th particle at time 0
+Particle weight: 1.9 for 7 th particle at time 0
+Particle weight: 1.9 for 8 th particle at time 0
+Particle weight: 0.4 for 9 th particle at time 0
+Particle weight: 0.4 for 10 th particle at time 0
+Particle weight: 1.9 for 11 th particle at time 0
+Particle weight: 1.9 for 12 th particle at time 0
+Particle weight: 1.9 for 13 th particle at time 0
+Particle weight: 0.4 for 14 th particle at time 0
+Particle weight: 0.4 for 15 th particle at time 0
+Particle weight: 1.9 for 16 th particle at time 0
+Particle weight: 1.9 for 17 th particle at time 0
+Particle weight: 0.4 for 18 th particle at time 0
+Particle weight: 1.9 for 19 th particle at time 0
+Particle weight: 0.4 for 20 th particle at time 0
+Particle weight: 1.9 for 21 th particle at time 0
+Particle weight: 0.4 for 22 th particle at time 0
+Particle weight: 1.9 for 23 th particle at time 0
+Particle weight: 1.9 for 24 th particle at time 0
+Particle weight: 1.9 for 25 th particle at time 0
+Particle weight: 1.9 for 26 th particle at time 0
+Particle weight: 1.9 for 27 th particle at time 0
+Particle weight: 1.9 for 28 th particle at time 0
+Particle weight: 1.9 for 29 th particle at time 0
+Particle weight: 1.9 for 30 th particle at time 0
+Particle weight: 1.9 for 31 th particle at time 0
+Particle weight: 0.4 for 32 th particle at time 0
+Particle weight: 1.9 for 33 th particle at time 0
+Particle weight: 1.9 for 34 th particle at time 0
+Particle weight: 0.4 for 35 th particle at time 0
+Particle weight: 1.9 for 36 th particle at time 0
+Particle weight: 1.9 for 37 th particle at time 0
+Particle weight: 1.9 for 38 th particle at time 0
+Particle weight: 1.9 for 39 th particle at time 0
+Particle weight: 1.9 for 40 th particle at time 0
+Particle weight: 0.4 for 41 th particle at time 0
+Particle weight: 1.9 for 42 th particle at time 0
+Particle weight: 1.9 for 43 th particle at time 0
+Particle weight: 1.9 for 44 th particle at time 0
+Particle weight: 0.4 for 45 th particle at time 0
+Particle weight: 1.9 for 46 th particle at time 0
+Particle weight: 1.9 for 47 th particle at time 0
+Particle weight: 1.9 for 48 th particle at time 0
+Particle weight: 1.9 for 49 th particle at time 0
+Particle weight: 0.4 for 50 th particle at time 0
+Total Particles at the end of the iteration 1: 50
+Particle weight: 0.04000000000000001 for 1 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 2 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 3 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 4 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 5 th particle at time 0.016514993842067234
+Particle weight: 3.04 for 6 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 7 th particle at time 0.016514993842067234
+Particle weight: 3.04 for 8 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 9 th particle at time 0.016514993842067234
+Particle weight: 0.6400000000000001 for 10 th particle at time 0.016514993842067234
+Particle weight: 3.04 for 11 th particle at time 0.016514993842067234
+Particle weight: 3.04 for 12 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 13 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 14 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 15 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 16 th particle at time 0.016514993842067234
+Particle weight: 3.04 for 17 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 18 th particle at time 0.016514993842067234
+Particle weight: 3.04 for 19 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 20 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 21 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 22 th particle at time 0.016514993842067234
+Particle weight: 3.04 for 23 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 24 th particle at time 0.016514993842067234
+Particle weight: 3.04 for 25 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 26 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 27 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 28 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 29 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 30 th particle at time 0.016514993842067234
+Particle weight: 3.04 for 31 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 32 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 33 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 34 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 35 th particle at time 0.016514993842067234
+Particle weight: 3.04 for 36 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 37 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 38 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 39 th particle at time 0.016514993842067234
+Particle weight: 3.04 for 40 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 41 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 42 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 43 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 44 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 45 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 46 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 47 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 48 th particle at time 0.016514993842067234
+Particle weight: 0.19 for 49 th particle at time 0.016514993842067234
+Particle weight: 0.04000000000000001 for 50 th particle at time 0.016514993842067234
+Total Particles at the end of the iteration 2: 30
+Particle weight: 0.019000000000000003 for 1 th particle at time 0.02255125271885718
+Particle weight: 4.864000000000001 for 2 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 3 th particle at time 0.02255125271885718
+Particle weight: 4.864000000000001 for 4 th particle at time 0.02255125271885718
+Particle weight: 0.06400000000000002 for 5 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 6 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 7 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 8 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 9 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 10 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 11 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 12 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 13 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 14 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 15 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 16 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 17 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 18 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 19 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 20 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 21 th particle at time 0.02255125271885718
+Particle weight: 4.864000000000001 for 22 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 23 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 24 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 25 th particle at time 0.02255125271885718
+Particle weight: 0.30400000000000005 for 26 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 27 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 28 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 29 th particle at time 0.02255125271885718
+Particle weight: 0.019000000000000003 for 30 th particle at time 0.02255125271885718
+Creating offspring from particle: 2
+Total Particles: 30
+Creating offspring from particle: 2
+Total Particles: 31
+Creating offspring from particle: 2
+Total Particles: 32
+Creating offspring from particle: 2
+Total Particles: 33
+Creating offspring from particle: 2
+Total Particles: 34
+Creating offspring from particle: 2
+Total Particles: 35
+Creating offspring from particle: 2
+Total Particles: 36
+Creating offspring from particle: 4
+Total Particles: 36
+Creating offspring from particle: 4
+Total Particles: 37
+Creating offspring from particle: 4
+Total Particles: 38
+Creating offspring from particle: 4
+Total Particles: 39
+Creating offspring from particle: 4
+Total Particles: 40
+Creating offspring from particle: 4
+Total Particles: 41
+Creating offspring from particle: 22
+Total Particles: 37
+Creating offspring from particle: 22
+Total Particles: 38
+Creating offspring from particle: 22
+Total Particles: 39
+Creating offspring from particle: 22
+Total Particles: 40
+Creating offspring from particle: 22
+Total Particles: 41
+Creating offspring from particle: 22
+Total Particles: 42
+Total Particles at the end of the iteration 3: 36
+Particle weight: 0.4864000000000001 for 1 th particle at time 0.03097823811665421
+Particle weight: 0.4864000000000001 for 2 th particle at time 0.03097823811665421
+Particle weight: 0.4864000000000001 for 3 th particle at time 0.03097823811665421
+Particle weight: 0.4864000000000001 for 4 th particle at time 0.03097823811665421
+Particle weight: 0.030400000000000007 for 5 th particle at time 0.03097823811665421
+Particle weight: 0.030400000000000007 for 6 th particle at time 0.03097823811665421
+Particle weight: 0.030400000000000007 for 7 th particle at time 0.03097823811665421
+Particle weight: 0.030400000000000007 for 8 th particle at time 0.03097823811665421
+Particle weight: 0.030400000000000007 for 9 th particle at time 0.03097823811665421
+Particle weight: 0.030400000000000007 for 10 th particle at time 0.03097823811665421
+Particle weight: 0.030400000000000007 for 11 th particle at time 0.03097823811665421
+Particle weight: 0.4864000000000001 for 12 th particle at time 0.03097823811665421
+Particle weight: 0.4864000000000001 for 13 th particle at time 0.03097823811665421
+Particle weight: 0.030400000000000007 for 14 th particle at time 0.03097823811665421
+Particle weight: 0.4864000000000001 for 15 th particle at time 0.03097823811665421
+Particle weight: 0.4864000000000001 for 16 th particle at time 0.03097823811665421
+Particle weight: 0.0019000000000000004 for 17 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 18 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 19 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 20 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 21 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 22 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 23 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 24 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 25 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 26 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 27 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 28 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 29 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 30 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 31 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 32 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 33 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 34 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 35 th particle at time 0.03097823811665421
+Particle weight: 0.061900000000000024 for 36 th particle at time 0.03097823811665421
+Total Particles at the end of the iteration 4: 31
+Particle weight: 0.19456000000000007 for 1 th particle at time 0.057560429287794423
+Particle weight: 0.9241600000000002 for 2 th particle at time 0.057560429287794423
+Particle weight: 0.9241600000000002 for 3 th particle at time 0.057560429287794423
+Particle weight: 0.9241600000000002 for 4 th particle at time 0.057560429287794423
+Particle weight: 0.05776000000000001 for 5 th particle at time 0.057560429287794423
+Particle weight: 0.05776000000000001 for 6 th particle at time 0.057560429287794423
+Particle weight: 0.05776000000000001 for 7 th particle at time 0.057560429287794423
+Particle weight: 0.05776000000000001 for 8 th particle at time 0.057560429287794423
+Particle weight: 0.9241600000000002 for 9 th particle at time 0.057560429287794423
+Particle weight: 0.9241600000000002 for 10 th particle at time 0.057560429287794423
+Particle weight: 0.19456000000000007 for 11 th particle at time 0.057560429287794423
+Particle weight: 0.9241600000000002 for 12 th particle at time 0.057560429287794423
+Particle weight: 0.003610000000000001 for 13 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 14 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 15 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 16 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 17 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 18 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 19 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 20 th particle at time 0.057560429287794423
+Particle weight: 0.11761000000000005 for 21 th particle at time 0.057560429287794423
+Particle weight: 0.11761000000000005 for 22 th particle at time 0.057560429287794423
+Particle weight: 0.11761000000000005 for 23 th particle at time 0.057560429287794423
+Particle weight: 0.11761000000000005 for 24 th particle at time 0.057560429287794423
+Particle weight: 0.11761000000000005 for 25 th particle at time 0.057560429287794423
+Particle weight: 0.11761000000000005 for 26 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 27 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 28 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 29 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 30 th particle at time 0.057560429287794423
+Particle weight: 0.02476000000000001 for 31 th particle at time 0.057560429287794423
+Total Particles at the end of the iteration 5: 23
+Particle weight: 0.3696640000000001 for 1 th particle at time 0.0603925901570123
+Particle weight: 1.7559040000000004 for 2 th particle at time 0.0603925901570123
+Particle weight: 0.3696640000000001 for 3 th particle at time 0.0603925901570123
+Particle weight: 1.7559040000000004 for 4 th particle at time 0.0603925901570123
+Particle weight: 0.10974400000000002 for 5 th particle at time 0.0603925901570123
+Particle weight: 0.023104000000000006 for 6 th particle at time 0.0603925901570123
+Particle weight: 0.10974400000000002 for 7 th particle at time 0.0603925901570123
+Particle weight: 1.7559040000000004 for 8 th particle at time 0.0603925901570123
+Particle weight: 1.7559040000000004 for 9 th particle at time 0.0603925901570123
+Particle weight: 0.3696640000000001 for 10 th particle at time 0.0603925901570123
+Particle weight: 1.7559040000000004 for 11 th particle at time 0.0603925901570123
+Particle weight: 0.047044000000000016 for 12 th particle at time 0.0603925901570123
+Particle weight: 0.047044000000000016 for 13 th particle at time 0.0603925901570123
+Particle weight: 0.047044000000000016 for 14 th particle at time 0.0603925901570123
+Particle weight: 0.047044000000000016 for 15 th particle at time 0.0603925901570123
+Particle weight: 0.047044000000000016 for 16 th particle at time 0.0603925901570123
+Particle weight: 0.04704400000000002 for 17 th particle at time 0.0603925901570123
+Particle weight: 0.22345900000000007 for 18 th particle at time 0.0603925901570123
+Particle weight: 0.22345900000000007 for 19 th particle at time 0.0603925901570123
+Particle weight: 0.22345900000000007 for 20 th particle at time 0.0603925901570123
+Particle weight: 0.04704400000000002 for 21 th particle at time 0.0603925901570123
+Particle weight: 0.047044000000000016 for 22 th particle at time 0.0603925901570123
+Particle weight: 0.047044000000000016 for 23 th particle at time 0.0603925901570123
+Total Particles at the end of the iteration 6: 15
+Particle weight: 0.14786560000000004 for 1 th particle at time 0.06840443887624595
+Particle weight: 3.3362176000000003 for 2 th particle at time 0.06840443887624595
+Particle weight: 0.7023616000000001 for 3 th particle at time 0.06840443887624595
+Particle weight: 3.3362176000000003 for 4 th particle at time 0.06840443887624595
+Particle weight: 3.3362176000000003 for 5 th particle at time 0.06840443887624595
+Particle weight: 0.7023616000000001 for 6 th particle at time 0.06840443887624595
+Particle weight: 0.7023616000000001 for 7 th particle at time 0.06840443887624595
+Particle weight: 3.3362176000000003 for 8 th particle at time 0.06840443887624595
+Particle weight: 0.018817600000000007 for 9 th particle at time 0.06840443887624595
+Particle weight: 0.08938360000000004 for 10 th particle at time 0.06840443887624595
+Particle weight: 0.4245721000000001 for 11 th particle at time 0.06840443887624595
+Particle weight: 0.4245721000000001 for 12 th particle at time 0.06840443887624595
+Particle weight: 0.4245721000000001 for 13 th particle at time 0.06840443887624595
+Particle weight: 0.08938360000000002 for 14 th particle at time 0.06840443887624595
+Particle weight: 0.08938360000000002 for 15 th particle at time 0.06840443887624595
+Total Particles at the end of the iteration 7: 11
+Particle weight: 0.2809446400000001 for 1 th particle at time 0.0708727928982211
+Particle weight: 6.33881344 for 2 th particle at time 0.0708727928982211
+Particle weight: 1.3344870400000002 for 3 th particle at time 0.0708727928982211
+Particle weight: 1.3344870400000002 for 4 th particle at time 0.0708727928982211
+Particle weight: 6.33881344 for 5 th particle at time 0.0708727928982211
+Particle weight: 1.3344870400000002 for 6 th particle at time 0.0708727928982211
+Particle weight: 1.3344870400000002 for 7 th particle at time 0.0708727928982211
+Particle weight: 1.3344870400000002 for 8 th particle at time 0.0708727928982211
+Particle weight: 0.8066869900000002 for 9 th particle at time 0.0708727928982211
+Particle weight: 0.8066869900000002 for 10 th particle at time 0.0708727928982211
+Particle weight: 0.8066869900000002 for 11 th particle at time 0.0708727928982211
+Total Particles at the end of the iteration 8: 11
+Particle weight: 0.5337948160000001 for 1 th particle at time 0.07926444256121526
+Particle weight: 12.043745536 for 2 th particle at time 0.07926444256121526
+Particle weight: 2.5355253760000003 for 3 th particle at time 0.07926444256121526
+Particle weight: 2.5355253760000003 for 4 th particle at time 0.07926444256121526
+Particle weight: 12.043745536 for 5 th particle at time 0.07926444256121526
+Particle weight: 2.5355253760000003 for 6 th particle at time 0.07926444256121526
+Particle weight: 2.5355253760000003 for 7 th particle at time 0.07926444256121526
+Particle weight: 0.5337948160000001 for 8 th particle at time 0.07926444256121526
+Particle weight: 1.5327052810000004 for 9 th particle at time 0.07926444256121526
+Particle weight: 1.5327052810000004 for 10 th particle at time 0.07926444256121526
+Particle weight: 1.5327052810000004 for 11 th particle at time 0.07926444256121526
+Total Particles at the end of the iteration 9: 9
+Particle weight: 22.883116518399998 for 1 th particle at time 0.08741086834758498
+Particle weight: 4.8174982144000005 for 2 th particle at time 0.08741086834758498
+Particle weight: 4.8174982144000005 for 3 th particle at time 0.08741086834758498
+Particle weight: 4.8174982144000005 for 4 th particle at time 0.08741086834758498
+Particle weight: 4.8174982144000005 for 5 th particle at time 0.08741086834758498
+Particle weight: 1.0142101504 for 6 th particle at time 0.08741086834758498
+Particle weight: 2.9121400339000005 for 7 th particle at time 0.08741086834758498
+Particle weight: 2.9121400339000005 for 8 th particle at time 0.08741086834758498
+Particle weight: 2.9121400339000005 for 9 th particle at time 0.08741086834758498
+Total Particles at the end of the iteration 10: 8
+Particle weight: 2.28831165184 for 1 th particle at time 0.10423708473005885
+Particle weight: 0.48174982144000006 for 2 th particle at time 0.10423708473005885
+Particle weight: 0.48174982144000006 for 3 th particle at time 0.10423708473005885
+Particle weight: 7.707997143040001 for 4 th particle at time 0.10423708473005885
+Particle weight: 7.707997143040001 for 5 th particle at time 0.10423708473005885
+Particle weight: 0.2912140033900001 for 6 th particle at time 0.10423708473005885
+Particle weight: 0.2912140033900001 for 7 th particle at time 0.10423708473005885
+Particle weight: 0.2912140033900001 for 8 th particle at time 0.10423708473005885
+Total Particles at the end of the iteration 11: 3
+Particle weight: 4.347792138496 for 1 th particle at time 0.11383992650324577
+Particle weight: 14.645194571776 for 2 th particle at time 0.11383992650324577
+Particle weight: 3.0831988572160007 for 3 th particle at time 0.11383992650324577
+Total Particles at the end of the iteration 12: 3
+Particle weight: 1.7391168553984 for 1 th particle at time 0.11596707747624337
+Particle weight: 27.8258696863744 for 2 th particle at time 0.11596707747624337
+Particle weight: 5.858077828710401 for 3 th particle at time 0.11596707747624337
+Total Particles at the end of the iteration 13: 3
+Particle weight: 0.17391168553984002 for 1 th particle at time 0.1293061076625865
+Particle weight: 44.521391498199044 for 2 th particle at time 0.1293061076625865
+Particle weight: 0.5858077828710402 for 3 th particle at time 0.1293061076625865
+Total Particles at the end of the iteration 14: 1
+Particle weight: 84.59064384657817 for 1 th particle at time 0.14379106563643138
+Total Particles at the end of the iteration 15: 1
+Particle weight: 8.459064384657818 for 1 th particle at time 0.147835616831819
+Total Particles at the end of the iteration 16: 1
+Particle weight: 13.53450301545251 for 1 th particle at time 0.15424394808123734
+Total Particles at the end of the iteration 17: 1
+Particle weight: 21.655204824724017 for 1 th particle at time 0.17378261877482948
+Total Particles at the end of the iteration 18: 1
+Particle weight: 41.14488916697563 for 1 th particle at time 0.1747485447505609
+Total Particles at the end of the iteration 19: 1
+Particle weight: 4.114488916697563 for 1 th particle at time 0.17541351122713034
+Total Particles at the end of the iteration 20: 1
+Particle weight: 7.817528941725369 for 1 th particle at time 0.17707576410591483
+Total Particles at the end of the iteration 21: 1
+Particle weight: 14.8533049892782 for 1 th particle at time 0.20184624163747553
+Total Particles at the end of the iteration 22: 1
+Particle weight: 23.765287982845123 for 1 th particle at time 0.21608413418958394
+Total Particles at the end of the iteration 23: 1
+Particle weight: 45.154047167405736 for 1 th particle at time 0.22613882016664466
+Total Particles at the end of the iteration 24: 1
+Particle weight: 85.7926896180709 for 1 th particle at time 0.2378862884043408
+Total Particles at the end of the iteration 25: 1
+Particle weight: 34.31707584722836 for 1 th particle at time 0.258856201468615
+Total Particles at the end of the iteration 26: 1
+Particle weight: 3.431707584722836 for 1 th particle at time 0.29283009886347894
+Total Particles at the end of the iteration 27: 1
+Particle weight: 0.3431707584722836 for 1 th particle at time 0.29982801521373503
+Total Particles at the end of the iteration 28: 1
+Particle weight: 0.6520244410973388 for 1 th particle at time 0.3047410779052616
+Total Particles at the end of the iteration 29: 1
+Particle weight: 1.0432391057557422 for 1 th particle at time 0.30623717635260583
+Total Particles at the end of the iteration 30: 1
+Particle weight: 1.9821543009359102 for 1 th particle at time 0.3084380779009004
+Total Particles at the end of the iteration 31: 1
+Particle weight: 3.766093171778229 for 1 th particle at time 0.3112611027485181
+Total Particles at the end of the iteration 32: 1
+Particle weight: 1.5064372687112917 for 1 th particle at time 0.3397510143285
+Total Particles at the end of the iteration 33: 1
+Particle weight: 0.15064372687112917 for 1 th particle at time 0.35947248164916523
+Total Particles at the end of the iteration 34: 1
+Particle weight: 0.015064372687112918 for 1 th particle at time 0.372167568899234
+Total Particles at the end of the iteration 35: 1
+Particle weight: 0.028622308105514544 for 1 th particle at time 0.3757849527140711
+Total Particles at the end of the iteration 36: 1
+Particle weight: 0.05438238540047763 for 1 th particle at time 0.39623357784723234
+Total Particles at the end of the iteration 37: 1

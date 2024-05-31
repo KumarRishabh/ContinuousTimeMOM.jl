@@ -19,9 +19,9 @@ dir_path = joinpath(@__DIR__)
     # state of the particle is defined as a 2D array with the same dimensions as the grid
     state::Array{Bool, 2} = zeros(Bool, 12, 12) # 20 x 20 grid with all zeros
     weight::Float64 = 1.0
-    age::Int = 0 # age of the particle
-    child::Int = 0 # 0 means the particle has no parent
-    id::Int = 0 # parent of the particle
+    # age::Int = 0 # age of the particle
+    # child::Int = 0 # 0 means the particle has no parent
+    # id::Int = 0 # parent of the particle
 
 end
 
@@ -148,9 +148,7 @@ count_total_particles(initialize_particles_as_vectors(100, grid_params, model_pa
 # instead of storing the particle_history as a dictionary, write the particle_history to a file
 # Also, instead of storing the particle_history as a dictionary, store it as a vector
 function branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations ; r=1.5, signal_state=zeros(Bool, 12, 12), signal_rate=100.0)
-    # TODO: Code cleanup, instead of using hashmaps, use arrays
-    # TODO: Use a more efficient data structure to store the particle history and save it to memory 
-    # TEST: After evey 64 time stamps, i) delete the particle history from memory and ii) save it to a file
+
     t_curr, t_next = 0, 0
     initial_particles = initialize_particles_as_vectors(initial_num_particles, grid_params, model_params)
     # particle_history = Dict{Float32,Dict{Int,Vector{Particle}}}()
@@ -159,8 +157,9 @@ function branching_particle_filter(initial_num_particles, grid_params, model_par
     # particle_history = Dict{Float32,Vector{Particle}}() # use a vector instead of a dictionary   
     push!(particle_history, deepcopy(initial_particles))
     new_particles = deepcopy(initial_particles)
-    average_weights = 1.0
+    average_weights = sum([particle.weight for particle in new_particles]) / initial_num_particles
     progress = Progress(length(observation_time_stamps), 1, "Starting the particle filter...")
+
     for i ∈ eachindex(observation_time_stamps)
         next!(progress)
         if i != length(observation_time_stamps)
@@ -173,56 +172,61 @@ function branching_particle_filter(initial_num_particles, grid_params, model_par
 
         new_model_params = ContactProcess.ModelParameters(infection_rate=0.05, recovery_rate=0.1, time_limit=t_next, prob_infections=0.05, num_simulations=1000) # rates are defined to be per day
         total_particles = count_total_particles(new_particles)
-        println("Average weights: ", average_weights) 
+ 
+
         for j ∈ 1:total_particles
-            if average_weights > 2.718^20
-                state = new_particles[j].state
-                rates = ContactProcess.calculate_all_rates(state, grid_params, new_model_params)
-                X_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, new_model_params)
+            state = deepcopy(new_particles[j].state)
+            rates = ContactProcess.calculate_all_rates(state, grid_params, new_model_params)
+            X_sequence, _, _ = ContactProcess.run_simulation!(state, rates, grid_params, new_model_params)
+            new_particles[j].state = copy(X_sequence[end])
 
+            if average_weights > exp(20) || average_weights < exp(-20)
                 new_particles[j].weight = new_particles[j].weight * likelihood(X_sequence[end], observations[i]) * 2 / average_weights
-                new_particles[j].state = copy(X_sequence[end])
-
+            
             else
-                state = new_particles[j].state
-                rates = ContactProcess.calculate_all_rates(state, grid_params, new_model_params)
-                X_sequence, times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, new_model_params)
-
                 new_particles[j].weight = new_particles[j].weight * likelihood(X_sequence[end], observations[i]) * 2
-                new_particles[j].state = copy(X_sequence[end])
+            end
+            open("$dir_path/output.txt", "w") do file
+                println(file, "Particle weight: ", new_particles[j].weight, " for $j th particle at time $t_curr")
             end
         end
 
-        average_weights = sum([particle.weight for particle in new_particles]) / length(new_particles)
-
-        # actual_num_particles = 0
+        average_weights = sum([particle.weight for particle in new_particles]) / total_particles
         temp_particles = deepcopy(new_particles)
         deleted_particles = 0
+
         for j ∈ 1:total_particles
-            
-            # actual_num_particles += 1
-            # V = rand(Uniform(-0.1, 0.1))
-            if ((average_weights / r <= new_particles[j].weight) && (new_particles[j].weight <= average_weights * r)) == false # To branch
+            V = 0.2 * rand() - 0.1
+            if ((average_weights / r <= new_particles[j].weight + V) && (new_particles[j].weight + V <= average_weights * r)) == false # To branch
                 num_offspring = floor(Int, new_particles[j].weight / average_weights)
+                # println("The Bernoulli parameter is:", (new_particles[j].weight / average_weights) - num_offspring)
                 num_offspring += rand(Bernoulli((new_particles[j].weight / average_weights) - num_offspring))
                 new_particles[j].weight = average_weights
                 if num_offspring > 0 # branch the particle
+                    # println("Branching particle: ", j, " with ", num_offspring, " offsprings")
                     for _ ∈ 1:(num_offspring-1)
-                        push!(temp_particles, new_particles[j])
+                        
+                        push!(temp_particles, deepcopy(new_particles[j]))
+                        open("$dir_path/output.txt", "a") do file
+                            println(file, "Creating offspring from particle: ", j)
+                            println(file, "Total Particles: ", count_total_particles(temp_particles))
+                        end
                     end
 
                 else # kill the particle
-                    # println("Deleting particle at ", j, " ", k, "with weight ", new_particles[j][k-deleted_particles].weight)
+                    # println("Killing particle: ", j)
                     deleteat!(temp_particles, j - deleted_particles)
+                    # println("Total Particles: ", count_total_particles(temp_particles))
                     deleted_particles += 1
                 end
             end
         end
 
-        new_particles = temp_particles # update the particles
-        finalize(temp_particles)
-        # println("Total Particles: ", count_total_particles(new_particles)) # update the particles
-        push!(particle_history, deepcopy(new_particles))
+        new_particles = deepcopy(temp_particles) # update the particles
+        open("$dir_path/output.txt", "a") do file
+            println(file, "Total Particles at the end of the iteration $i: ", count_total_particles(new_particles))
+        end
+        push!(particle_history, new_particles)
 
     end
     return particle_history
@@ -238,14 +242,14 @@ observed_state, time = observe_state(state)
 observed_state[2][1]
 observations, observation_time_stamps = get_observations_from_state_sequence(state_sequence, model_params.time_limit, transition_times)
 observed_dict = Dict(observation_time_stamps .=> observations)
-initial_num_particles = 1000 # initially start with 100 particles
+initial_num_particles = 50 # initially start with 100 particles
 # between the observation time stamps, simulate the contact process with state and rates
 V = 0.2*rand() - 0.1
 U = 0.2*rand() - 0.1
 
 initialize_particles(initial_num_particles, grid_params, model_params)
 
-particle_history = branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations, r=2, signal_state=state, signal_rate=rates)
+particle_history = branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations, r=5.5, signal_state=state, signal_rate=rates)
 
 # particle_history = load("$dir_path/particle_history.jls")
 
