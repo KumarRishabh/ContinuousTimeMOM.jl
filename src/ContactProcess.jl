@@ -209,7 +209,7 @@ module ContactProcess
         state_sequence = []
         times = [0.0]
         updated_nodes = [(1, 1)] # don't have to count the (1, 1) node, just a placeholder
-        push!(state_sequence, state)
+        push!(state_sequence, deepcopy(state))
         time_elapsed = 0.0
         while time_elapsed < model_params.time_limit
             rates = calculate_all_rates(state_sequence[end], grid_params, model_params)
@@ -217,8 +217,8 @@ module ContactProcess
             if time + times[end] > model_params.time_limit
                 break
             end
-            new_state, updated_node = update_states!(copy(state_sequence[end]), copy(rates), grid_params; debug_mode = debug_mode)
-            rates = update_rates!(new_state, copy(rates), updated_node, grid_params, model_params)
+            new_state, updated_node = update_states!(deepcopy(state_sequence[end]), copy(rates), grid_params; debug_mode = debug_mode)
+            rates = update_rates!(new_state, deepcopy(rates), updated_node, grid_params, model_params)
             push!(state_sequence, new_state)
             push!(times, times[end] + time)
             push!(updated_nodes, updated_node)
