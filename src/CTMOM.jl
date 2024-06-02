@@ -1,74 +1,263 @@
 module CTMOM
+    using PrettyTables
+    using Revise
+    using Plots
+    using Random
+    using ProgressMeter
+    # using JLD2 # for saving and loading the data efficiently
+    include("ContactProcess.jl")
+    using .ContactProcess
+    using JLD2
+    using Distributions
+    Random.seed!(10)
+    using Parameters
+    using Distributed
+    using Serialization
+    using FileIO
 
-#     #= 
-#     The CTMOM module will consist of the basic structures required for the Continuous Time MOM filtering and prediction 
-#     algorithms. 
 
-#     Then use the CTMOM module to run experiments on the simulated dataset given in the CTHMM R package documentation. 
-#     =#
+    export Particle, initialize_particles_as_vectors, biased_initialize_particles_as_vectors, initialize_particles_as_hashmap, initialize_particles_with_signals_as_hashmap, observe_node, observe_state, get_observations_from_state_sequence, get_observations, likelihood, count_total_particles, branching_particle_filter, estimate_infection_grid, actual_infection_grid, calculate_error, calculate_error_trajectory, get_heatmap_data, plot_heatmap, save_particle_history, save_simulation_to_csv
 
-#     #= 
-#     CTMOM Algorithm 
+    dir_path = joinpath(@__DIR__, "./filtered_data")
+    @with_kw mutable struct Particle
+        # state of the particle is defined as a 2D array with the same dimensions as the grid
+        state::Array{Bool, 2} = zeros(Bool, 12, 12) # 20 x 20 grid with all zeros
+        weight::Float64 = 1.0
+        # age::Int = 0 # age of the particle
+        # child::Int = 0 # 0 means the particle has no parent
+        # id::Int = 0 # parent of the particle
 
-#     =#
+    end
 
-#     # Define any domain-specific functions and constants here
-#     # ...
-    struct Particle
-        state::Int
-        weight::Float64
-    end       
 
-#     function test
-#     # Function to evolve particle behavior
-#     function evolve_particle(x_i, t_n_minus_1, t_n)
-#         # Implement the specific evolution of the particle here
-#     end
 
-#     # Function to calculate the weight increment
-#     function weight_increment(y_n, x_i, t_n_minus_1, t_n)
-#         # Implement the calculation for the weight increment here
-#     end
+    # Select a node in the M \times M grid at random 
+    # with rate = 100 and observe the state of the node with some error 
+    # For example, if X[i, j] = 1 (infected) then the observtion is correct with probability 0.80
+    # and if X[i, j] = 0 (not infected) then the observation is correct with probability 0.95
 
-#     # Function for the resampling decision
-#     function resample_decision(a_i, a_tilde, v_i, u_i, r, cumulative_sum)  
-#         # Implement the resampling decision logic here
-#     end
+    function initialize_particles_as_vectors(num_particles, grid_params, model_params)
+        particles = Vector{Particle}()
+        for i ∈ 1:num_particles
+            initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="fixed_probability")
+            push!(particles, Particle(state = initial_state, weight = 1.0))
+        end
+        return particles
+    end
+    function biased_initialize_particles_as_vectors(num_particles, grid_params, model_params)
+        particles = Vector{Particle}()
+        for i ∈ 1:3
+            initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="fixed_probability")
+            push!(particles, Particle(state = initial_state, weight = 1.0))
+        end
+        for i ∈ 4:num_particles
+            initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="fixed_probability")
+            push!(particles, Particle(state=initial_state, weight=10.0))
+        end
+        return particles
+    end
 
-#     # Function to resample the particles
-#     function resample_particles(a, v, u, r)
-#         # Implement the resampling logic here
-#     end
 
-#     # Function to calculate offspring number
-#     function calculate_offspring(a)
-#         # Implement the logic to calculate offspring numbers here
-#     end
+    function initialize_particles_as_hashmap(num_particles, grid_params, model_params)::Dict{Int,Vector{Particle}}
+        particles = Dict{Int,Vector{Particle}}()
+        for i ∈ 1:num_particles
+            initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="complete_chaos")
+            particles[i] = [Particle(state = initial_state, weight = 1.0)]
+        end
+        return particles
+    end
 
-#     # Define the particle filtering process as a function
-#     function particle_filter(Y, X₀, A₀, t, N, r)
-#         # Initialize particles and weights
-#         particles = [Particle(X₀, A₀) for _ in 1:N]
+    function initialize_particles_with_signals_as_hashmap(num_particles, grid_params, model_params, signal_state, signal_rate)::Dict{Int,Vector{Particle}}
+        particles = Dict{Int,Vector{Particle}}()
+        for i ∈ 1:Int(num_particles)
+            initial_state, initial_rate = ContactProcess.initialize_state_and_rates(grid_params, model_params, mode="fixed_probability")
+            particles[i] = [Particle(state = initial_state, weight = 1.0)]
+        end
+        return particles
+    end
 
-#         for n in 2:length(t)
-#             # Evolve and weight particles
-#             X = map(x -> evolve_particle(x, t[n-1], t[n]), X)
-#             A = map((x, a) -> a * exp(weight_increment(Y[n], x, t[n-1], t[n])), X, A)
+    function observe_node(state, i, j; infection_error_rate = 0.80, recovery_error_rate = 0.95)
+        if state[i, j] == true # if the node is infected
+            return rand() < infection_error_rate
+        else # if the node is not infected
+            # return true with probability 0.05
+            return rand() < 1 - recovery_error_rate
+        end
+    end
 
-#             # Resample decision
-#             A_tilde = sum(A) / N
-#             cumulative_sum = reduce((x, y) -> x + y, A, init=0)
-#             A = map((a, v, u) -> resample_decision(a, A_tilde, v, u, r, cumulative_sum), A, V, U)
-            
-#             # Resample
-#             # ...
+    function observe_state(state; infection_error_rate = 0.80, recovery_error_rate = 0.95, rate = 100)
+        # select a node at random and observe the state of the node
+        i, j = rand(2:(size(state, 1) - 1)), rand(2:(size(state, 2)-1))
+        time = rand(Exponential(1/rate)) 
+        observed_state = (observe_node(state, i, j, infection_error_rate = infection_error_rate, recovery_error_rate = recovery_error_rate), (i ,j))
 
-#             # Add offspring number
-#             # ...
-#         end
+        return observed_state, time
+    end
 
-#         return X, A
-#     end
-end
-# # Call the particle filter function with appropriate parameters
-# # X, A = particle_filter(Y, X₀, A₀, t, N, r)
+
+
+    function get_observations_from_state_sequence(state_sequence, time_limit, transition_times; infection_error_rate = 0.80, recovery_error_rate = 0.95, rate = 100)
+        observations = []
+        times = []
+        current_time = 0.0
+        while current_time < time_limit
+            if current_time == 0.0
+                observed_state, time = observe_state(state_sequence[1], infection_error_rate=infection_error_rate, recovery_error_rate=recovery_error_rate, rate=rate)
+            else    
+                observed_state, time = observe_state(state_sequence[findlast(x -> x <= current_time, transition_times)], infection_error_rate=infection_error_rate, recovery_error_rate=recovery_error_rate, rate=rate)
+            end
+            push!(observations, observed_state)
+            push!(times, time + current_time)
+            current_time = times[end]
+        end
+        return observations, times
+    end
+
+    function get_observations(state, time_limit; infection_error_rate = 0.80, recovery_error_rate = 0.95, rate = 100)
+        observations = []
+        times = []
+        current_time = 0
+        while current_time < time_limit
+            observed_state, time = observe_state(state, infection_error_rate = infection_error_rate, recovery_error_rate = recovery_error_rate, rate = rate)
+            push!(observations, observed_state)
+            # if times is empty then push the time otherwise push the time + the last element in times (write a ternary if-else)
+            push!(times, isempty(times) ? time : time + times[end])
+            current_time = times[end]
+        end
+        return observations, times
+    end
+
+    function likelihood(hidden_state, observed_state)
+        # q_bar is the canonical probability of the observed state given the hidden state which is 1/2
+        if hidden_state[observed_state[2][1], observed_state[2][2]] == true
+            if observed_state[1] == true
+                return 0.8
+            else
+                return 0.2
+            end
+        end 
+
+        if observed_state[1] == true
+            return 0.05
+        else
+            return 0.95
+        end
+        
+    end
+
+    function count_total_particles(particle_history, time_stamp)
+        total_particles = 0
+        time_stamp = Float32(time_stamp)
+        for key in keys(particle_history[Float32(time_stamp)])
+            total_particles += length(particle_history[time_stamp][key])
+        end
+        return total_particles
+    end
+
+    function count_total_particles(particles)
+        return length(particles)
+    end
+    # Let's initialize states and rates and observe the state
+
+    # instead of storing the particle_history as a dictionary, write the particle_history to a file
+    # Also, instead of storing the particle_history as a dictionary, store it as a vector
+    function branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations ; r=1.5, signal_state=zeros(Bool, 12, 12), signal_rate=100.0)
+
+        t_curr, t_next = 0, 0
+        initial_particles = initialize_particles_as_vectors(initial_num_particles, grid_params, model_params)
+        # particle_history = Dict{Float32,Dict{Int,Vector{Particle}}}()
+        # Use a vector{vector{Particle}} instead of a dictionary
+        particle_history = Vector{Vector{Particle}}()
+        # particle_history = Dict{Float32,Vector{Particle}}() # use a vector instead of a dictionary   
+        push!(particle_history, deepcopy(initial_particles))
+        new_particles = deepcopy(initial_particles)
+        average_weights = sum([particle.weight for particle in new_particles]) / initial_num_particles
+        progress = Progress(length(observation_time_stamps), 1, "Starting the particle filter...")
+
+        for i ∈ eachindex(observation_time_stamps)
+            next!(progress)
+            if i != length(observation_time_stamps)
+                t_curr = t_next
+                t_next = observation_time_stamps[i]
+            else
+                t_curr = t_next
+                t_next = model_params.time_limit
+            end
+
+            new_model_params = ContactProcess.ModelParameters(infection_rate=0.05, recovery_rate=0.1, time_limit=t_next, prob_infections=0.05, num_simulations=1000) # rates are defined to be per day
+            total_particles = count_total_particles(new_particles)
+    
+
+            for j ∈ 1:total_particles
+                state = deepcopy(new_particles[j].state)
+                rates = ContactProcess.calculate_all_rates(state, grid_params, new_model_params)
+                X_sequence, _, _ = ContactProcess.run_simulation!(state, rates, grid_params, new_model_params)
+                new_particles[j].state = copy(X_sequence[end])
+
+                if average_weights > exp(20) || average_weights < exp(-20)
+                    new_particles[j].weight = new_particles[j].weight * likelihood(X_sequence[end], observations[i]) * 2 / average_weights
+                    # new_particles[j].weight = 2 / average_weights
+                else
+                    new_particles[j].weight = new_particles[j].weight * likelihood(X_sequence[end], observations[i]) * 2
+                    # new_particles[j].weight = 2
+                end
+                open("$dir_path/output.txt", "a") do file
+                    println(file, "Particle weight: ", new_particles[j].weight, " for $j th particle at time $t_curr")
+                end
+            end
+
+            average_weights = sum([particle.weight for particle in new_particles]) / total_particles
+            open("$dir_path/output.txt", "a") do file
+                println(file, "Average weights at time $t_curr: ", average_weights)
+            end
+            temp_particles = deepcopy(new_particles)
+            deleted_particles = 0
+            total_offsprings = 0
+            for j ∈ 1:total_particles
+                V = 0.2 * rand() - 0.1
+                if ((average_weights / r <= new_particles[j].weight + V) && (new_particles[j].weight + V <= average_weights * r)) == false # To branch
+                    num_offspring = flag = floor(Int, new_particles[j].weight / average_weights)
+                    # println("The Bernoulli parameter is:", (new_particles[j].weight / average_weights) - num_offspring)
+                    num_offspring += rand(Bernoulli((new_particles[j].weight / average_weights) - num_offspring))
+                    temp_particles[j - deleted_particles].weight = deepcopy(average_weights)
+                    if num_offspring > 0 # branch the particle
+                        # println("Branching particle: ", j, " with ", num_offspring, " offsprings")
+                        if flag == 0
+                            open("$dir_path/output.txt", "a") do file
+                                println(file, "Killing candidate ", j, " but not killed with weight: ", new_particles[j].weight/average_weights)
+                            end
+                        end 
+                        for _ ∈ 1:(num_offspring-1)
+                            push!(temp_particles, deepcopy(new_particles[j]))
+                            
+                        end
+                        total_offsprings += num_offspring - 1
+                    
+                    else # kill the particle
+                        # println("Killing particle: ", j)
+                        deleteat!(temp_particles, j - deleted_particles)
+                        # println("Total Particles: ", count_total_particles(temp_particles))
+                        open("$dir_path/output.txt", "a") do file
+                            println(file, "Killing particle: ", j, " with weight: ", new_particles[j].weight/average_weights , " at time $t_curr")
+                        end
+
+                        deleted_particles += 1
+                    end
+
+                end
+            end
+
+            new_particles = deepcopy(temp_particles) # update the particles
+            open("$dir_path/output.txt", "a") do file
+                println(file, "Destroyed particles: ", deleted_particles, " Total offsprings: ", total_offsprings)
+                println(file, "Total Particles at the end of the iteration $i: ", count_total_particles(new_particles))
+            end
+            push!(particle_history, new_particles)
+
+        end
+        return particle_history
+    end
+
+end # module Observations
+
+
