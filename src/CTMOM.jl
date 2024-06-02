@@ -21,7 +21,7 @@ module CTMOM
     dir_path = joinpath(@__DIR__, "./filtered_data")
     @with_kw mutable struct Particle
         # state of the particle is defined as a 2D array with the same dimensions as the grid
-        state::Array{Bool, 2} = zeros(Bool, 12, 12) # 20 x 20 grid with all zeros
+        state::Array{Bool, 2} = zeros(Bool, 17, 17) # 20 x 20 grid with all zeros
         weight::Float64 = 1.0
         # age::Int = 0 # age of the particle
         # child::Int = 0 # 0 means the particle has no parent
@@ -96,7 +96,7 @@ module CTMOM
 
 
 
-    function get_observations_from_state_sequence(state_sequence, time_limit, transition_times; infection_error_rate = 0.80, recovery_error_rate = 0.95, rate = 100)
+    function get_observations_from_state_sequence(state_sequence, time_limit, transition_times; infection_error_rate = 0.80, recovery_error_rate = 0.95, rate = 100, testing_mode = false)
         observations = []
         times = []
         current_time = 0.0
@@ -157,19 +157,23 @@ module CTMOM
     function count_total_particles(particles)
         return length(particles)
     end
+
+    function save_particle_history(particles, time_stamp)
+        time_stamp = Float32(time_stamp)
+        save("$dir_path/particle_history_$(time_stamp).jld2", "particles", particles)
+    end
     # Let's initialize states and rates and observe the state
 
     # instead of storing the particle_history as a dictionary, write the particle_history to a file
     # Also, instead of storing the particle_history as a dictionary, store it as a vector
-    function branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations ; r=1.5, signal_state=zeros(Bool, 12, 12), signal_rate=100.0)
+    function branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations ; r=1.5, signal_state=zeros(Bool, 12, 12), signal_rate=100.0, testing_mode = false)
 
         t_curr, t_next = 0, 0
         initial_particles = initialize_particles_as_vectors(initial_num_particles, grid_params, model_params)
         # particle_history = Dict{Float32,Dict{Int,Vector{Particle}}}()
         # Use a vector{vector{Particle}} instead of a dictionary
-        particle_history = Vector{Vector{Particle}}()
+        # particle_history = Vector{Vector{Particle}}()
         # particle_history = Dict{Float32,Vector{Particle}}() # use a vector instead of a dictionary   
-        push!(particle_history, deepcopy(initial_particles))
         new_particles = deepcopy(initial_particles)
         average_weights = sum([particle.weight for particle in new_particles]) / initial_num_particles
         progress = Progress(length(observation_time_stamps), 1, "Starting the particle filter...")
@@ -201,14 +205,16 @@ module CTMOM
                     new_particles[j].weight = new_particles[j].weight * likelihood(X_sequence[end], observations[i]) * 2
                     # new_particles[j].weight = 2
                 end
-                open("$dir_path/output.txt", "a") do file
-                    println(file, "Particle weight: ", new_particles[j].weight, " for $j th particle at time $t_curr")
+                if testing_mode == true
+                    open("$dir_path/output.txt", "a") do file
+                        println(file, "Particle weight: ", new_particles[j].weight, " for $j th particle at time $t_next")
+                    end
                 end
             end
 
             average_weights = sum([particle.weight for particle in new_particles]) / initial_num_particles
             open("$dir_path/output.txt", "a") do file
-                println(file, "Average weights at time $t_curr: ", average_weights)
+                println(file, "Average weights at time $t_next: ", average_weights)
             end
             temp_particles = deepcopy(new_particles)
             deleted_particles = 0
@@ -223,8 +229,10 @@ module CTMOM
                     if num_offspring > 0 # branch the particle
                         # println("Branching particle: ", j, " with ", num_offspring, " offsprings")
                         if flag == 0
-                            open("$dir_path/output.txt", "a") do file
-                                println(file, "Killing candidate ", j, " but not killed with weight: ", new_particles[j].weight/average_weights)
+                            if testing_mode == true
+                                open("$dir_path/output.txt", "a") do file
+                                    println(file, "Killing candidate ", j, " but not killed with weight: ", new_particles[j].weight/average_weights)
+                                end
                             end
                         end 
                         for _ ∈ 1:(num_offspring-1)
@@ -237,8 +245,10 @@ module CTMOM
                         # println("Killing particle: ", j)
                         deleteat!(temp_particles, j - deleted_particles)
                         # println("Total Particles: ", count_total_particles(temp_particles))
-                        open("$dir_path/output.txt", "a") do file
-                            println(file, "Killing particle: ", j, " with weight: ", new_particles[j].weight/average_weights , " at time $t_curr")
+                        if testing_mode == true
+                            open("$dir_path/output.txt", "a") do file
+                                println(file, "Killing particle: ", j, " with weight: ", new_particles[j].weight/average_weights , " at time $t_next")
+                            end
                         end
 
                         deleted_particles += 1
@@ -248,14 +258,18 @@ module CTMOM
             end
 
             new_particles = deepcopy(temp_particles) # update the particles
-            open("$dir_path/output.txt", "a") do file
-                println(file, "Destroyed particles: ", deleted_particles, " Total offsprings: ", total_offsprings)
-                println(file, "Total Particles at the end of the iteration $i: ", count_total_particles(new_particles))
+            if testing_mode == true
+                open("$dir_path/output.txt", "a") do file
+                    println(file, "Destroyed particles: ", deleted_particles, " Total offsprings: ", total_offsprings)
+                    println(file, "Total Particles at the end of the iteration $i: ", count_total_particles(new_particles))
+                end
             end
-            push!(particle_history, new_particles)
+            # push!(particle_history, new_particles)
+            # save the particle history to a file and don't push it to the particle history
+            save_particle_history(new_particles, Float32(t_next))
 
         end
-        return particle_history
+        return
     end
 
 end # module Observations
