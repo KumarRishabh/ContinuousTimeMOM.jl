@@ -206,7 +206,7 @@ module CTMOM
                 end
             end
 
-            average_weights = sum([particle.weight for particle in new_particles]) / total_particles
+            average_weights = sum([particle.weight for particle in new_particles]) / initial_num_particles
             open("$dir_path/output.txt", "a") do file
                 println(file, "Average weights at time $t_curr: ", average_weights)
             end
