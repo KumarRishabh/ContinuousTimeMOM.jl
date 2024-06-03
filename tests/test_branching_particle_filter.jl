@@ -13,8 +13,8 @@ using JLD2
 Random.seed!(10)
 dir_path = joinpath(@__DIR__, "../src/filtered_data")
 save_fig_path = joinpath(@__DIR__, "../src/figures")
-grid_params = ContactProcess.GridParameters(width=15, height=15) # changed to 15 × 15 grid
-model_params = ContactProcess.ModelParameters(infection_rate=0.05, recovery_rate=0.1, time_limit=100, prob_infections=0.3, num_simulations=1000) # rates are defined to be per day
+grid_params = ContactProcess.GridParameters(width=10, height=10) # changed to 15 × 15 grid
+model_params = ContactProcess.ModelParameters(infection_rate=0.05, recovery_rate=0.1, time_limit=150, prob_infections=0.3, num_simulations=1000) # rates are defined to be per day
 
 state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_params; mode="fixed_probability")
 state_sequence, transition_times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, model_params)
@@ -22,7 +22,7 @@ observed_state, time = observe_state(state)
 observed_state
 observations, observation_time_stamps = get_observations_from_state_sequence(state_sequence, model_params.time_limit, transition_times)
 observed_dict = Dict(observation_time_stamps .=> observations)
-initial_num_particles = 20000 # initially start with 100 particles
+initial_num_particles = 7500 # initially start with 100 particles
 # between the observation time stamps, simulate the contact process with s tate and rates
 V = 0.2 * rand() - 0.1
 U = 0.2 * rand() - 0.1
@@ -33,13 +33,14 @@ CTMOM.branching_particle_filter(initial_num_particles, grid_params, model_params
 
 # total_particles(particle_history, 0.0)
 function estimate_infection_grid(time_stamp)
-    estimate = zeros(Float64, 17, 17)
+    estimate = zeros(Float64, 12, 12)
     normalization_factor = 0
     time_stamp = Float32(time_stamp)
     particles = load("$dir_path/particle_history_$(time_stamp).jld2", "particles")
     total_particles = count_total_particles(particles)
     for j ∈ 1:total_particles
         particle = particles[j]
+        # print("Particle: $j", particle)
         estimate .+= particle.weight * particle.state
         normalization_factor += particle.weight
     end
@@ -79,13 +80,13 @@ function calculate_error_trajectory(observation_time_stamps, state_sequence, tra
 end
 observation_time_stamps[1]
 errors = calculate_error_trajectory(observation_time_stamps, state_sequence, transition_times, time_limit=model_params.time_limit)
-plot(observation_time_stamps[2:end], errors, label="Error", xlabel="Time", ylabel="Error", title="Error in estimating the infection grid")
-savefig("$save_fig_path/error_plot_final.png")
+plot(observation_time_stamps[1:length(errors)], errors, label="Error", xlabel="Time", ylabel="Error", title="Error in estimating the infection grid")
+savefig("$save_fig_path/error_plot_3.png")
 
 function get_heatmap_data(time_stamp)
     heatmap_data = []
     i = Float32(time_stamp)
-    estimate = zeros(Float64, 17, 17)
+    estimate = zeros(Float64, 12, 12)
     normalization_factor = 0
     particles = load("$dir_path/particle_history_$(i).jld2", "particles")
     total_particles = count_total_particles(particles)

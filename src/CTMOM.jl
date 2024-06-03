@@ -21,7 +21,7 @@ module CTMOM
     dir_path = joinpath(@__DIR__, "./filtered_data")
     @with_kw mutable struct Particle
         # state of the particle is defined as a 2D array with the same dimensions as the grid
-        state::Array{Bool, 2} = zeros(Bool, 17, 17) # 20 x 20 grid with all zeros
+        state::Array{Bool, 2} = zeros(Bool, 12, 12) # 10 x 10 grid with all zeros
         weight::Float64 = 1.0
         # age::Int = 0 # age of the particle
         # child::Int = 0 # 0 means the particle has no parent
@@ -215,6 +215,7 @@ module CTMOM
             average_weights = sum([particle.weight for particle in new_particles]) / initial_num_particles
             open("$dir_path/output.txt", "a") do file
                 println(file, "Average weights at time $t_next: ", average_weights)
+                println(file, "Total Particles at the beginning of the iteration $t_next: ", count_total_particles(new_particles))
             end
             temp_particles = deepcopy(new_particles)
             deleted_particles = 0
