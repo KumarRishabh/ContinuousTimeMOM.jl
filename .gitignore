@@ -2,7 +2,7 @@
 *.jl.cov
 *.jl.mem
 *.gif
-*.png
+# *.png
 *.jld2
 *.jld
 *.txt
