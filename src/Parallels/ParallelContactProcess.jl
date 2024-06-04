@@ -43,7 +43,7 @@ module ParallelContactProcess
         i = (blockIdx().x - 1) * blockDim().x + threadIdx().x + 1# 0 based indexing
         j = (blockIdx().y - 1) * blockDim().y + threadIdx().y + 1# 0 based indexing
         # println(i, j)
-        if i <= grid_params.width_with_padding && j <= grid_params.height_with_padding
+        if i < grid_params.width_with_padding && j < grid_params.height_with_padding
             if mode == 1
                 if rand_vals[i, j] < 0.25
                     state[i, j] = true
@@ -87,8 +87,7 @@ module ParallelContactProcess
     end
 
     function sample_time_with_rates(rates, grid_params, model_params)
-        total_rate = sum(rates)
-        # time = rand(Exponential(1 / total_rate))
+        total_rate = CUDA.sum(rates)
         time = rand(Exponential(1 / total_rate))
         return time
     end
@@ -143,7 +142,7 @@ module ParallelContactProcess
     #     return state_sequence, transition_times, updated_nodes
     # end
 
-    function multiple_simulations(grid_params, model_params)
+    function run_simulation(grid_params, model_params)
         state = CUDA.zeros(Bool, grid_params.width_with_padding, grid_params.height_with_padding)
         rates = CUDA.zeros(grid_params.width_with_padding, grid_params.height_with_padding)
         rand_vals = CUDA.CuArray(CUDA.rand(grid_params.width_with_padding, grid_params.height_with_padding))
@@ -165,6 +164,10 @@ module ParallelContactProcess
         end
         return state_sequence, transition_times, updated_nodes
     end
+
+    # run multiple simulations optimally using CUDA where num_simulations is the number of simulations to run
+
+
 end
 
 # time the standard initialization and the CUDA initialization
@@ -175,4 +178,6 @@ timing = @time new_state, new_rates = ParallelContactProcess.initialize_state_an
 state_cpu = Array(new_state)
 rates_cpu = Array(new_rates)
 
-state_sequence, transition_times, updated_nodes = ParallelContactProcess.multiple_simulations(grid_params, model_params)
+state_sequence, transition_times, updated_nodes = ParallelContactProcess.run_simulation(grid_params, model_params)
+ϵ = 1e-6
+∈

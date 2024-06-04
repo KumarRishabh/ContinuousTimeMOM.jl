@@ -68,8 +68,8 @@ module ContactProcess
         end
         # Sample randomly the nodes which will be infected (mode = "fixed_probability")
         if mode == "fixed_probability"
-            for i in 2:grid_params.width + 1
-                for j in 2:grid_params.height + 1
+            for i in 2:grid_params.width_with_padding - 1
+                for j in 2:grid_params.height_with_padding - 1
                     if rand() < model_params.prob_infections
                         state[i, j] = true
                     end

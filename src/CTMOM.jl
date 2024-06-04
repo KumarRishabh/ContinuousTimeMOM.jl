@@ -9,7 +9,6 @@ module CTMOM
     using .ContactProcess
     using JLD2
     using Distributions
-    Random.seed!(10)
     using Parameters
     using Distributed
     using Serialization
@@ -18,7 +17,7 @@ module CTMOM
 
     export Particle, initialize_particles_as_vectors, biased_initialize_particles_as_vectors, initialize_particles_as_hashmap, initialize_particles_with_signals_as_hashmap, observe_node, observe_state, get_observations_from_state_sequence, get_observations, likelihood, count_total_particles, branching_particle_filter, estimate_infection_grid, actual_infection_grid, calculate_error, calculate_error_trajectory, get_heatmap_data, plot_heatmap, save_particle_history, save_simulation_to_csv
 
-    dir_path = joinpath(@__DIR__, "./filtered_data")
+    # dir_path = joinpath(@__DIR__, "./")
     @with_kw mutable struct Particle
         # state of the particle is defined as a 2D array with the same dimensions as the grid
         state::Array{Bool, 2} = zeros(Bool, 12, 12) # 10 x 10 grid with all zeros
@@ -158,7 +157,7 @@ module CTMOM
         return length(particles)
     end
 
-    function save_particle_history(particles, time_stamp)
+    function save_particle_history(particles, time_stamp,dir_path)
         time_stamp = Float32(time_stamp)
         save("$dir_path/particle_history_$(time_stamp).jld2", "particles", particles)
     end
@@ -166,7 +165,7 @@ module CTMOM
 
     # instead of storing the particle_history as a dictionary, write the particle_history to a file
     # Also, instead of storing the particle_history as a dictionary, store it as a vector
-    function branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations ; r=1.5, signal_state=zeros(Bool, 12, 12), signal_rate=100.0, testing_mode = false)
+    function residual_branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations ; r=1.5, signal_state=zeros(Bool, 12, 12), signal_rate=100.0, testing_mode = false, dir_path = "./")
 
         t_curr, t_next = 0, 0
         initial_particles = initialize_particles_as_vectors(initial_num_particles, grid_params, model_params)
@@ -176,6 +175,8 @@ module CTMOM
         # particle_history = Dict{Float32,Vector{Particle}}() # use a vector instead of a dictionary   
         new_particles = deepcopy(initial_particles)
         average_weights = sum([particle.weight for particle in new_particles]) / initial_num_particles
+        prinln("Running the Residual Branching Particle Filter")
+
         progress = Progress(length(observation_time_stamps), 1, "Starting the particle filter...")
 
         for i ∈ eachindex(observation_time_stamps)
@@ -273,6 +274,122 @@ module CTMOM
         return
     end
 
-end # module Observations
+    function combined_branching_particle_filter(initial_num_particles, grid_params, model_params, observation_time_stamps, observations ; r=1.5, signal_state=zeros(Bool, 12, 12), signal_rate=100.0, testing_mode = false, dir_path = "./")
 
+        t_curr, t_next = 0, 0
+        initial_particles = initialize_particles_as_vectors(initial_num_particles, grid_params, model_params)
+        # particle_history = Dict{Float32,Dict{Int,Vector{Particle}}}()
+        # Use a vector{vector{Particle}} instead of a dictionary
+        # particle_history = Vector{Vector{Particle}}()
+        # particle_history = Dict{Float32,Vector{Particle}}() # use a vector instead of a dictionary   
+        new_particles = deepcopy(initial_particles)
+        average_weights = sum([particle.weight for particle in new_particles]) / initial_num_particles
+        println("Running the Combined Branching Particle Filter")
+        progress = Progress(length(observation_time_stamps), 1, "Starting the particle filter...")
+
+        for i ∈ eachindex(observation_time_stamps)
+            next!(progress)
+            if i != length(observation_time_stamps)
+                t_curr = t_next
+                t_next = observation_time_stamps[i]
+            else
+                t_curr = t_next
+                t_next = model_params.time_limit
+            end
+
+            new_model_params = ContactProcess.ModelParameters(infection_rate=0.05, recovery_rate=0.1, time_limit=t_next, prob_infections=0.3, num_simulations=1000) # rates are defined to be per day
+            total_particles = count_total_particles(new_particles)
+    
+
+            for j ∈ 1:total_particles
+                state = deepcopy(new_particles[j].state)
+                rates = ContactProcess.calculate_all_rates(state, grid_params, new_model_params)
+                X_sequence, _, _ = ContactProcess.run_simulation!(state, rates, grid_params, new_model_params)
+                new_particles[j].state = copy(X_sequence[end])
+
+                if average_weights > exp(20) || average_weights < exp(-20)
+                    new_particles[j].weight = new_particles[j].weight * likelihood(X_sequence[end], observations[i]) * 2 / average_weights
+                    # new_particles[j].weight = 2 / average_weights
+                else
+                    new_particles[j].weight = new_particles[j].weight * likelihood(X_sequence[end], observations[i]) * 2
+                    # new_particles[j].weight = 2
+                end
+
+                if testing_mode == true
+                    open("$dir_path/output.txt", "a") do file
+                        println(file, "Particle weight: ", new_particles[j].weight, " for $j th particle at time $t_next")
+                    end
+                end
+            end 
+
+            average_weights = sum([particle.weight for particle in new_particles]) / initial_num_particles
+            open("$dir_path/output.txt", "a") do file
+                println(file, "Average weights at time $t_next: ", average_weights)
+                println(file, "Total Particles at the beginning of the iteration $t_next: ", count_total_particles(new_particles))
+            end
+
+            temp_particles = deepcopy(new_particles)
+            deleted_particles = 0
+            total_offsprings = 0
+            # create stratified samples of U[0, 1/total_particles]
+            U = rand(Uniform(0, 1/total_particles), total_particles)
+            U_stratified = [U[i] + (j - 1)/total_particles for (i, j) in enumerate(1:total_particles)]
+            # do a random shuffle of U_stratified
+            U_stratified = shuffle(U_stratified)
+            for j ∈ 1:total_particles
+                V = 0.2 * rand() - 0.1
+                if ((average_weights / r <= new_particles[j].weight + V) && (new_particles[j].weight + V <= average_weights * r)) == false # To branch
+                    num_offspring = flag = floor(Int, new_particles[j].weight / average_weights)
+                    # println("The Bernoulli parameter is:", (new_particles[j].weight / average_weights) - num_offspring)
+                    # num_offspring += rand(Bernoulli((new_particles[j].weight / average_weights) - num_offspring)) # This was OK for residual sampling
+                    num_offspring += U_stratified[j] < ((new_particles[j].weight / average_weights) - num_offspring) ? 1 : 0   
+                    temp_particles[j-deleted_particles].weight = deepcopy(average_weights)
+                    if num_offspring > 0 # branch the particle
+                        # println("Branching particle: ", j, " with ", num_offspring, " offsprings")
+                        if flag == 0
+                            if testing_mode == true
+                                open("$dir_path/output.txt", "a") do file
+                                    println(file, "Killing candidate ", j, " but not killed with weight: ", new_particles[j].weight / average_weights)
+                                end
+                            end
+                        end
+                        for _ ∈ 1:(num_offspring-1)
+                            push!(temp_particles, deepcopy(new_particles[j]))
+
+                        end
+                        total_offsprings += num_offspring - 1
+
+                    else # kill the particle
+                        # println("Killing particle: ", j)
+                        deleteat!(temp_particles, j - deleted_particles)
+                        # println("Total Particles: ", count_total_particles(temp_particles))
+                        if testing_mode == true
+                            open("$dir_path/output.txt", "a") do file
+                                println(file, "Killing particle: ", j, " with weight: ", new_particles[j].weight / average_weights, " at time $t_next")
+                            end
+                        end
+
+                        deleted_particles += 1
+                    end
+
+                end
+            end
+
+            new_particles = deepcopy(temp_particles) # update the particles
+            if testing_mode == true
+                open("$dir_path/output.txt", "a") do file
+                    println(file, "Destroyed particles: ", deleted_particles, " Total offsprings: ", total_offsprings)
+                    println(file, "Total Particles at the end of the iteration $i: ", count_total_particles(new_particles))
+                end
+            end
+            # push!(particle_history, new_particles)
+            # save the particle history to a file and don't push it to the particle history
+            save_particle_history(new_particles, Float32(t_next), dir_path)
+
+        end
+        return
+    
+    end 
+
+end # module Observations
 
