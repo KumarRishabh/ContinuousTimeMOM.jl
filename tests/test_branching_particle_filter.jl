@@ -10,11 +10,11 @@ include("../src/CTMOM.jl")
 using .CTMOM
 using .ContactProcess
 using JLD2
-Random.seed!(10)
+Random.seed!(1)
 dir_path = joinpath(@__DIR__, "../src/filtered_data")
 save_fig_path = joinpath(@__DIR__, "../src/figures")
 grid_params = ContactProcess.GridParameters(width=10, height=10) # changed to 15 × 15 grid
-model_params = ContactProcess.ModelParameters(infection_rate=0.05, recovery_rate=0.1, time_limit=150, prob_infections=0.3, num_simulations=1000) # rates are defined to be per day
+model_params = ContactProcess.ModelParameters(infection_rate=0.05, recovery_rate=0.1, time_limit=100, prob_infections=0.3, num_simulations=1000) # rates are defined to be per day
 
 state, rates = ContactProcess.initialize_state_and_rates(grid_params, model_params; mode="fixed_probability")
 state_sequence, transition_times, updated_nodes = ContactProcess.run_simulation!(state, rates, grid_params, model_params)
@@ -22,7 +22,7 @@ observed_state, time = observe_state(state)
 observed_state
 observations, observation_time_stamps = get_observations_from_state_sequence(state_sequence, model_params.time_limit, transition_times)
 observed_dict = Dict(observation_time_stamps .=> observations)
-initial_num_particles = 7500 # initially start with 100 particles
+initial_num_particles = 14000 # initially start with 100 particles
 # between the observation time stamps, simulate the contact process with s tate and rates
 V = 0.2 * rand() - 0.1
 U = 0.2 * rand() - 0.1
