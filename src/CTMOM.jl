@@ -297,7 +297,7 @@ module CTMOM
                 t_next = model_params.time_limit
             end
 
-            new_model_params = ContactProcess.ModelParameters(infection_rate=0.05, recovery_rate=0.1, time_limit=t_next, prob_infections=0.3, num_simulations=1000) # rates are defined to be per day
+            new_model_params = ContactProcess.ModelParameters(infection_rate=0.05, recovery_rate=0.1, time_limit= t_next - t_curr, prob_infections=0.3, num_simulations=1000) # rates are defined to be per day
             total_particles = count_total_particles(new_particles)
     
 
