@@ -27,7 +27,9 @@ This repository is intended for academic and research purposes. For any use of t
 
 You can reach out via:
 
-- Email: [rkumar5 [at] ualberta.ca, rish030798 [at] gmail.com]
-- Professor's Email: [michaelk [at] ualberta.ca]
+- Email: rkumar5 [at] ualberta.ca, rish030798 [at] gmail.com
+- Professor's Email: michaelk [at] ualberta.ca
+
+
 Acknowledgments
 This implementation is part of ongoing research, and contributions are based on the theoretical foundations laid out in the aforementioned paper. The algorithms included here have applications in areas such as disease progression tracking, importance sampling, and rejection sampling.
